@@ -14,6 +14,7 @@ export type ServiceItem = {
 };
 
 export type HeroData = {
+  badge: string;
   title: string;
   subtitle: string;
   ctaText: string;
@@ -85,6 +86,7 @@ export const defaultContent: SiteContent = {
       visible: true,
       style: DEFAULT_STYLE,
       data: {
+        badge: "מטפלת בנוירופידבק",
         title: "טיפול בנוירופידבק לחיים רגועים ומאוזנים יותר",
         subtitle:
           "ליווי טיפולי המסייע למוח ללמוד לווסת את עצמו — לריכוז טוב יותר, שינה איכותית ורוגע נפשי",

@@ -46,9 +46,13 @@ export default function Hero({
       />
 
       <div className={`relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center ${s.pad}`}>
-        <span className="mb-6 rounded-full bg-sage-light px-4 py-1.5 text-sm font-medium text-sage-dark">
-          מטפלת בנוירופידבק
-        </span>
+        <EditableText
+          as="span"
+          editable={editable}
+          value={data.badge}
+          onChange={(v) => onChange({ ...data, badge: v })}
+          className="mb-6 inline-block rounded-full bg-sage-light px-4 py-1.5 text-sm font-medium text-sage-dark"
+        />
         <EditableText
           as="h1"
           editable={editable}
