@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Singleton row (id is always 1) holding all editable site text as JSON.
+model SiteContent {
+  id        Int      @id @default(1)
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+// Singleton row (id is always 1) holding the admin login credentials, so the
+// password can be changed at runtime from Settings without a redeploy.
+model AdminAuth {
+  id           Int      @id @default(1)
+  username     String
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+}

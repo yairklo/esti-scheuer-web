@@ -1,0 +1,158 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import type { SiteContent } from "@/lib/content";
+import { Card, Field, TextInput, TextArea } from "./fields";
+import { fileToResizedDataUrl } from "@/lib/image";
+import ChangePasswordCard from "./ChangePasswordCard";
+
+type Status = "idle" | "saving" | "saved" | "error";
+
+export default function SettingsForm({
+  initialContent,
+}: {
+  initialContent: SiteContent;
+}) {
+  const [content, setContent] = useState<SiteContent>(initialContent);
+  const [status, setStatus] = useState<Status>("idle");
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
+  async function handleFaviconSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingFavicon(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 128, "image/png", 0.9);
+      setContent((c) => ({ ...c, meta: { ...c.meta, favicon: dataUrl } }));
+    } finally {
+      setUploadingFavicon(false);
+    }
+  }
+
+  async function handleSave() {
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(content),
+      });
+      setStatus(res.ok ? "saved" : "error");
+      if (res.ok) setTimeout(() => setStatus("idle"), 2500);
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-cream pb-24">
+      <header className="sticky top-0 z-10 border-b border-sand bg-cream/95 backdrop-blur">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
+          <div>
+            <h1 className="text-lg font-bold text-ink">הגדרות</h1>
+            <Link href="/" className="text-sm text-sage-dark hover:underline">
+              חזרה לאתר ועריכה
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            {status === "saved" && (
+              <span className="text-sm font-medium text-sage-dark">נשמר בהצלחה ✓</span>
+            )}
+            {status === "error" && (
+              <span className="text-sm font-medium text-terracotta-dark">שגיאה בשמירה</span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={status === "saving"}
+              className="rounded-full bg-sage px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sage-dark disabled:opacity-60"
+            >
+              {status === "saving" ? "שומר..." : "שמירה"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto mt-8 max-w-2xl space-y-6 px-6">
+        <ChangePasswordCard />
+
+        <Card
+          title="הגדרות SEO"
+          description="איך האתר מופיע בכרטיסיית הדפדפן ובתוצאות חיפוש בגוגל"
+        >
+          <Field label="כותרת האתר">
+            <TextInput
+              value={content.meta.title}
+              onChange={(e) =>
+                setContent((c) => ({
+                  ...c,
+                  meta: { ...c.meta, title: e.target.value },
+                }))
+              }
+            />
+          </Field>
+          <Field label="תיאור קצר">
+            <TextArea
+              rows={2}
+              value={content.meta.description}
+              onChange={(e) =>
+                setContent((c) => ({
+                  ...c,
+                  meta: { ...c.meta, description: e.target.value },
+                }))
+              }
+            />
+          </Field>
+        </Card>
+
+        <Card
+          title="לוגו / אייקון (Favicon)"
+          description='התמונה הקטנה שמופיעה ליד כותרת האתר בטאב של הדפדפן'
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-sand bg-white">
+              {content.meta.favicon ? (
+                // eslint-disable-next-line @next/next/no-img-element -- data URL preview, not a static asset
+                <img
+                  src={content.meta.favicon}
+                  alt="אייקון האתר"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-xs text-ink-soft">ברירת מחדל</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => faviconInputRef.current?.click()}
+              disabled={uploadingFavicon}
+              className="rounded-full border border-sand px-4 py-2 text-sm font-medium text-ink-soft hover:bg-sand/60 disabled:opacity-60"
+            >
+              {uploadingFavicon ? "מעלה..." : "העלאת תמונה"}
+            </button>
+            {content.meta.favicon && (
+              <button
+                type="button"
+                onClick={() =>
+                  setContent((c) => ({ ...c, meta: { ...c.meta, favicon: "" } }))
+                }
+                className="text-sm text-terracotta-dark hover:underline"
+              >
+                הסרה
+              </button>
+            )}
+            <input
+              ref={faviconInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFaviconSelect}
+            />
+          </div>
+        </Card>
+      </main>
+    </div>
+  );
+}
