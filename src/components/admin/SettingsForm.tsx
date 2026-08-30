@@ -121,7 +121,18 @@ export default function SettingsForm({
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <span className="text-xs text-ink-soft">ברירת מחדל</span>
+                <svg
+                  aria-label="אין אייקון מותאם אישית"
+                  className="h-6 w-6 text-ink-soft/50"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="9" r="1.5" fill="currentColor" stroke="none" />
+                  <path d="M21 15l-5-5-9 9" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               )}
             </div>
             <button
