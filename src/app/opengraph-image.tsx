@@ -7,6 +7,7 @@ import type { Section } from "@/lib/content";
 // Uses Prisma (getContent) to read live site content, which needs the
 // Node.js runtime — the default edge runtime can't run Prisma's engine.
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const alt = "אסתי שויער - מטפלת בנוירופידבק";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

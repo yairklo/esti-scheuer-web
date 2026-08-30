@@ -237,9 +237,14 @@ function normalize(raw: Record<string, unknown>): SiteContent {
 const CONTENT_ID = 1;
 
 export async function getContent(): Promise<SiteContent> {
-  const row = await prisma.siteContent.findUnique({
-    where: { id: CONTENT_ID },
-  });
+  let row;
+  try {
+    row = await prisma.siteContent.findUnique({ where: { id: CONTENT_ID } });
+  } catch {
+    // DB unreachable (e.g. during a build, or a brief outage in production) —
+    // fall back to the built-in defaults instead of failing the whole page.
+    return defaultContent;
+  }
 
   if (!row) return defaultContent;
 
