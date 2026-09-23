@@ -15,11 +15,15 @@ export default function CustomSection({
   size,
   editable,
   onChange,
+  onUpdate,
 }: {
   data: CustomData;
   size: SectionSize;
   editable: boolean;
   onChange: (d: CustomData) => void;
+  // Applies a change to the latest saved data rather than this render's copy,
+  // for updates that land after an await.
+  onUpdate: (fn: (d: CustomData) => CustomData) => void;
 }) {
   const s = SIZE[size];
   const { position } = resolveLayout(data.mediaLayout);
@@ -56,6 +60,7 @@ export default function CustomSection({
       alt={data.heading}
       editable={editable}
       onMediaChange={(media) => onChange({ ...data, media })}
+      onMediaAdd={(added) => onUpdate((d) => ({ ...d, media: [...d.media, ...added] }))}
       onLayoutChange={(mediaLayout) => onChange({ ...data, mediaLayout })}
     />
   );
