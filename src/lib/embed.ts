@@ -2,8 +2,9 @@
 // embeddable iframe description. Returns null for anything unrecognised, so a
 // bad paste never renders a broken iframe.
 //
-// Embeds use each network's plain iframe endpoint rather than its embed
-// script (embed.js, sdk.js), so nothing third-party runs in the page itself.
+// Embeds use each network's plain iframe endpoint where possible. The one
+// exception is Facebook posts: their plugin iframe can't report its height
+// without the FB SDK, so those render through the SDK (loaded on demand).
 
 export type EmbedProvider = "youtube" | "vimeo" | "instagram" | "tiktok" | "facebook";
 
@@ -13,6 +14,7 @@ export type Embed = {
   // "wide" = 16:9 video; "tall" = portrait video (TikTok);
   // "post" = variable-height social post card.
   shape: "wide" | "tall" | "post";
+  href?: string; // original post URL, for embeds rendered via an SDK
 };
 
 export const PROVIDER_LABELS: Record<EmbedProvider, string> = {
@@ -89,6 +91,7 @@ export function toEmbed(raw: string): Embed | null {
         provider: "facebook",
         src: `https://www.facebook.com/plugins/post.php?href=${href}&show_text=true&width=500`,
         shape: "post",
+        href: url.toString(),
       };
     }
     return null;

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaItem, MediaLayout, MediaSize } from "@/lib/content";
 import { fileToResizedDataUrl } from "@/lib/image";
+import FacebookPost from "./FacebookPost";
 import { embedHint, toEmbed, PROVIDER_LABELS, type Embed } from "@/lib/embed";
 
 // Grid widths. Gaps are gap-6 (1.5rem), so each width subtracts its share of
@@ -111,20 +112,8 @@ function EmbedView({
     );
   }
 
-  if (embed.shape === "post") {
-    // Facebook's post plugin can't report its height without the FB SDK, so
-    // give it a generous fixed height and let the card scroll inside.
-    return (
-      <div className="mx-auto w-full max-w-[500px] overflow-hidden rounded-2xl border border-sand bg-white">
-        <iframe
-          src={embed.src}
-          title={alt}
-          className={`h-[600px] w-full ${noPointer}`}
-          allow="encrypted-media; clipboard-write; picture-in-picture; web-share"
-          loading="lazy"
-        />
-      </div>
-    );
+  if (embed.provider === "facebook" && embed.shape === "post" && embed.href) {
+    return <FacebookPost href={embed.href} editable={editable} />;
   }
 
   const frame =
