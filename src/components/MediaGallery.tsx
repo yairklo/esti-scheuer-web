@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaItem, MediaLayout, MediaSize } from "@/lib/content";
 import { fileToResizedDataUrl } from "@/lib/image";
-import { toEmbedUrl } from "@/lib/video";
+import { embedHint, toEmbed, PROVIDER_LABELS, type Embed } from "@/lib/embed";
 
 // Grid widths. Gaps are gap-6 (1.5rem), so each width subtracts its share of
 // the gaps in its row to make e.g. three "sm" items fit exactly on one line.
@@ -43,7 +43,108 @@ export function resolveLayout(layout: MediaLayout | undefined): Required<MediaLa
 }
 
 function isShowable(item: MediaItem) {
-  return item.kind === "video" ? Boolean(toEmbedUrl(item.src)) : Boolean(item.src);
+  return item.kind === "video" ? Boolean(toEmbed(item.src)) : Boolean(item.src);
+}
+
+// Carousel slides share a 4:3 frame so the row looks even — but only images
+// and landscape videos can be cropped/letterboxed into it. Portrait videos and
+// social post cards keep their natural shape.
+function fitsFrame(item: MediaItem) {
+  return item.kind === "image" || toEmbed(item.src)?.shape === "wide";
+}
+
+// Instagram's /embed/ page reports its content height to the parent via
+// postMessage ({type: "MEASURE", details: {height}}) — the same signal its
+// embed.js script uses — so the card can be sized without running that script.
+function InstagramFrame({ src, title, editable }: { src: string; title: string; editable: boolean }) {
+  const ref = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(640);
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== "https://www.instagram.com" || e.source !== ref.current?.contentWindow) return;
+      try {
+        const msg = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        const h = Number(msg?.details?.height);
+        if (msg?.type === "MEASURE" && h > 0) setHeight(Math.ceil(h));
+      } catch {
+        // Not a message we understand.
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  return (
+    <iframe
+      ref={ref}
+      src={src}
+      title={title}
+      style={{ height }}
+      className={`w-full rounded-2xl border border-sand bg-white ${editable ? "pointer-events-none" : ""}`}
+      scrolling="no"
+      loading="lazy"
+    />
+  );
+}
+
+function EmbedView({
+  embed,
+  alt,
+  fill,
+  editable,
+}: {
+  embed: Embed;
+  alt: string;
+  fill: boolean;
+  editable: boolean;
+}) {
+  // In edit mode an iframe would swallow drag events and clicks meant for the
+  // controls on top of it.
+  const noPointer = editable ? "pointer-events-none" : "";
+
+  if (embed.provider === "instagram") {
+    return (
+      <div className="mx-auto w-full max-w-[540px]">
+        <InstagramFrame src={embed.src} title={alt} editable={editable} />
+      </div>
+    );
+  }
+
+  if (embed.shape === "post") {
+    // Facebook's post plugin can't report its height without the FB SDK, so
+    // give it a generous fixed height and let the card scroll inside.
+    return (
+      <div className="mx-auto w-full max-w-[500px] overflow-hidden rounded-2xl border border-sand bg-white">
+        <iframe
+          src={embed.src}
+          title={alt}
+          className={`h-[600px] w-full ${noPointer}`}
+          allow="encrypted-media; clipboard-write; picture-in-picture; web-share"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  const frame =
+    embed.shape === "tall"
+      ? "mx-auto aspect-[9/16] w-full max-w-[340px]"
+      : fill
+        ? "h-full"
+        : "aspect-video";
+  return (
+    <div className={`overflow-hidden rounded-2xl bg-ink/5 shadow-md ${frame}`}>
+      <iframe
+        src={embed.src}
+        title={alt}
+        className={`h-full w-full ${noPointer}`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        loading="lazy"
+      />
+    </div>
+  );
 }
 
 function MediaView({
@@ -58,32 +159,15 @@ function MediaView({
   editable: boolean;
 }) {
   if (item.kind === "video") {
-    const embedUrl = toEmbedUrl(item.src);
-    if (!embedUrl) {
+    const embed = toEmbed(item.src);
+    if (!embed) {
       return (
         <div className="flex aspect-video items-center justify-center rounded-2xl bg-sand/60 p-4 text-center text-sm text-ink-soft">
-          {editable ? "הדביקי למטה קישור לסרטון" : null}
+          {editable ? "הדביקי למטה קישור לסרטון או לפוסט" : null}
         </div>
       );
     }
-    return (
-      <div
-        className={`overflow-hidden rounded-2xl bg-ink/5 shadow-md ${
-          fill ? "h-full" : "aspect-video"
-        }`}
-      >
-        <iframe
-          src={embedUrl}
-          title={alt}
-          // In edit mode the iframe would swallow drag events and clicks
-          // meant for the controls on top of it.
-          className={`h-full w-full ${editable ? "pointer-events-none" : ""}`}
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          loading="lazy"
-        />
-      </div>
-    );
+    return <EmbedView embed={embed} alt={alt} fill={fill} editable={editable} />;
   }
   if (!item.src) return null;
   return (
@@ -159,7 +243,7 @@ function Carousel({
       <div
         ref={trackRef}
         onScroll={update}
-        className="flex snap-x snap-mandatory gap-6 overflow-x-auto pb-3 [scrollbar-width:thin]"
+        className="flex snap-x snap-mandatory items-start gap-6 overflow-x-auto pb-3 [scrollbar-width:thin]"
       >
         {children}
       </div>
@@ -280,12 +364,13 @@ export default function MediaGallery({
   const renderItem = ({ item, i }: { item: MediaItem; i: number }) => {
     const size = item.size ?? "md";
     const width = isCarousel ? CAROUSEL_WIDTH[layout.perView] : GRID_WIDTH[size];
-    const frame = isCarousel ? "aspect-[4/3] shrink-0 snap-start" : "";
+    const framed = isCarousel && fitsFrame(item);
+    const frame = isCarousel ? `shrink-0 snap-start ${framed ? "aspect-[4/3]" : ""}` : "";
 
     if (!editable) {
       return (
         <div key={i} className={`${width} ${frame}`}>
-          <MediaView item={item} alt={alt} fill={isCarousel} editable={false} />
+          <MediaView item={item} alt={alt} fill={framed} editable={false} />
         </div>
       );
     }
@@ -318,8 +403,8 @@ export default function MediaGallery({
           dragFrom === i ? "opacity-40" : ""
         } ${dragOver === i && dragFrom !== i ? "ring-4 ring-sage ring-offset-2" : ""}`}
       >
-        <div className={isCarousel ? "aspect-[4/3]" : ""}>
-          <MediaView item={item} alt={alt} fill={isCarousel} editable />
+        <div className={framed ? "aspect-[4/3]" : ""}>
+          <MediaView item={item} alt={alt} fill={framed} editable />
         </div>
 
         <div className="absolute inset-x-2 top-2 flex flex-wrap items-center justify-between gap-1 rounded-xl bg-white/95 p-1 text-xs shadow">
@@ -380,15 +465,20 @@ export default function MediaGallery({
               dir="ltr"
               value={item.src}
               onChange={(e) => updateItem(i, { src: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="קישור מיוטיוב, אינסטגרם, טיקטוק או פייסבוק"
               className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-ink outline-none focus:border-sage"
             />
-            {item.src && !toEmbedUrl(item.src) && (
-              <p className="mt-1 text-xs text-terracotta-dark">
-                הקישור לא זוהה כסרטון יוטיוב או Vimeo. אפשר להעתיק אותו מכפתור
-                &quot;שיתוף&quot; מתחת לסרטון.
-              </p>
-            )}
+            {item.src &&
+              (() => {
+                const embed = toEmbed(item.src);
+                return embed ? (
+                  <p className="mt-1 text-xs text-sage-dark">
+                    זוהה: {PROVIDER_LABELS[embed.provider]} ✓
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-terracotta-dark">{embedHint(item.src)}</p>
+                );
+              })()}
           </div>
         )}
       </div>
@@ -455,7 +545,7 @@ export default function MediaGallery({
               onClick={() => onMediaChange([...media, { kind: "video", src: "" }])}
               className="rounded-full bg-sage px-3 py-1.5 font-medium text-white hover:bg-sage-dark"
             >
-              + סרטון
+              + סרטון / פוסט מהרשתות
             </button>
           </div>
           <input
