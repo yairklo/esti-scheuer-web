@@ -35,3 +35,37 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Per-section design overrides (set from edit mode, applied by SectionChrome).
+   Tailwind v4's text-* and colour utilities read theme variables, so
+   redefining the size tokens here scales every text size inside the section.
+   These rules are unlayered, so they win over the layered utilities. */
+.section-design {
+  --text-xs: calc(0.75rem * var(--text-scale, 1));
+  --text-sm: calc(0.875rem * var(--text-scale, 1));
+  --text-base: calc(1rem * var(--text-scale, 1));
+  --text-lg: calc(1.125rem * var(--text-scale, 1));
+  --text-xl: calc(1.25rem * var(--text-scale, 1));
+  --text-2xl: calc(1.5rem * var(--text-scale, 1));
+  --text-3xl: calc(1.875rem * var(--text-scale, 1));
+  --text-4xl: calc(2.25rem * var(--text-scale, 1));
+  --text-5xl: calc(3rem * var(--text-scale, 1));
+  --text-6xl: calc(3.75rem * var(--text-scale, 1));
+}
+
+.section-design[data-bg] {
+  background-color: var(--section-bg);
+}
+
+/* The section's own background would cover the chosen colour. */
+.section-design[data-bg] > section {
+  background: transparent;
+}
+
+.section-design[data-heading-color] :is(h1, h2, h3, summary) {
+  color: var(--section-heading);
+}
+
+.section-design[data-text-color] :is(p, li, [data-body]) {
+  color: var(--section-text);
+}

@@ -6,6 +6,12 @@ export type SectionSize = "sm" | "md" | "lg";
 export type SectionStyle = {
   font: FontKey;
   size: SectionSize;
+  // Optional design overrides set from edit mode; unset = the section's
+  // built-in look. Colours are "#rrggbb".
+  bg?: string;
+  headingColor?: string;
+  textColor?: string;
+  textScale?: number; // multiplies every text size in the section; 1 = default
 };
 
 export type ServiceItem = {

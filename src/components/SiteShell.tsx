@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { ADDABLE_SECTIONS, createSection, type AddableSectionType } from "@/lib/new-sections";
 import type {
   ContactData,
-  FontKey,
   Section,
   SectionType,
   SiteContent,
-  SectionSize,
 } from "@/lib/content";
 import Header, { type NavItem } from "./Header";
 import Footer from "./Footer";
@@ -133,20 +131,11 @@ export default function SiteShell({
     setContent((c) => ({ ...c, sections: c.sections.filter((s) => s.id !== id) }));
   }
 
-  function setFont(id: string, font: FontKey) {
+  function setStyle(id: string, patch: Partial<Section["style"]>) {
     setContent((c) => ({
       ...c,
       sections: c.sections.map((s) =>
-        s.id === id ? { ...s, style: { ...s.style, font } } : s
-      ),
-    }));
-  }
-
-  function setSize(id: string, size: SectionSize) {
-    setContent((c) => ({
-      ...c,
-      sections: c.sections.map((s) =>
-        s.id === id ? { ...s, style: { ...s.style, size } } : s
+        s.id === id ? { ...s, style: { ...s.style, ...patch } } : s
       ),
     }));
   }
@@ -243,8 +232,7 @@ export default function SiteShell({
               onMoveDown={() => moveSection(section.id, 1)}
               hidden={!section.visible}
               onToggleHidden={() => setVisible(section.id, !section.visible)}
-              onFontChange={(f) => setFont(section.id, f)}
-              onSizeChange={(sz) => setSize(section.id, sz)}
+              onStyleChange={(patch) => setStyle(section.id, patch)}
               onDelete={
                 ADDABLE_SECTIONS.some((a) => a.type === section.type)
                   ? () => deleteSection(section.id)

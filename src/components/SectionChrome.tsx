@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import type { SectionStyle, FontKey, SectionSize } from "@/lib/content";
 import { FONT_VARS, FONT_LABELS, FONT_KEYS } from "@/lib/fonts";
+import DesignPanel, { safeColor } from "./DesignPanel";
 
 const SIZE_KEYS: SectionSize[] = ["sm", "md", "lg"];
 const SIZE_LABELS: Record<SectionSize, string> = {
@@ -21,8 +23,7 @@ export function SectionChrome({
   onMoveDown,
   hidden,
   onToggleHidden,
-  onFontChange,
-  onSizeChange,
+  onStyleChange,
   onDelete,
   children,
 }: {
@@ -38,12 +39,35 @@ export function SectionChrome({
   // brought back in place; visitors never see them.
   hidden: boolean;
   onToggleHidden: () => void;
-  onFontChange: (f: FontKey) => void;
-  onSizeChange: (s: SectionSize) => void;
+  onStyleChange: (patch: Partial<SectionStyle>) => void;
   // Only for sections she created herself; built-in sections can just be hidden.
   onDelete?: () => void;
   children: React.ReactNode;
 }) {
+  const [designOpen, setDesignOpen] = useState(false);
+
+  const bg = safeColor(style.bg);
+  const heading = safeColor(style.headingColor);
+  const text = safeColor(style.textColor);
+  const designVars = {
+    "--text-scale": style.textScale ?? 1,
+    ...(bg && { "--section-bg": bg }),
+    ...(heading && { "--section-heading": heading }),
+    ...(text && { "--section-text": text }),
+  } as React.CSSProperties;
+
+  const content = (
+    <div
+      className="section-design"
+      style={designVars}
+      data-bg={bg ? "" : undefined}
+      data-heading-color={heading ? "" : undefined}
+      data-text-color={text ? "" : undefined}
+    >
+      {children}
+    </div>
+  );
+
   return (
     <div id={id} style={{ fontFamily: FONT_VARS[style.font] }} className="relative">
       {editable && (
@@ -75,7 +99,7 @@ export function SectionChrome({
             </button>
             <select
               value={style.font}
-              onChange={(e) => onFontChange(e.target.value as FontKey)}
+              onChange={(e) => onStyleChange({ font: e.target.value as FontKey })}
               className="rounded border border-sand bg-cream px-1.5 py-0.5"
               title="גופן"
             >
@@ -85,12 +109,15 @@ export function SectionChrome({
                 </option>
               ))}
             </select>
-            <div className="flex gap-0.5 rounded border border-sand bg-cream p-0.5">
+            <div
+              className="flex gap-0.5 rounded border border-sand bg-cream p-0.5"
+              title="גודל הסקשן (ריווח וכותרות)"
+            >
               {SIZE_KEYS.map((s) => (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => onSizeChange(s)}
+                  onClick={() => onStyleChange({ size: s as SectionSize })}
                   className={`rounded px-1.5 py-0.5 ${
                     style.size === s ? "bg-sage text-white" : "text-ink-soft"
                   }`}
@@ -99,6 +126,16 @@ export function SectionChrome({
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => setDesignOpen((v) => !v)}
+              aria-expanded={designOpen}
+              className={`rounded px-2 py-0.5 font-medium ${
+                designOpen ? "bg-sage text-white" : "text-sage-dark hover:bg-sage-light"
+              }`}
+            >
+              🎨 עיצוב
+            </button>
             {hidden ? (
               <button
                 type="button"
@@ -131,7 +168,12 @@ export function SectionChrome({
           </div>
         </div>
       )}
-      {hidden ? <div className="opacity-40 grayscale">{children}</div> : children}
+      {editable && designOpen && (
+        <div className="relative z-20 mx-auto -mt-1 mb-2 max-w-2xl px-4">
+          <DesignPanel style={style} onChange={onStyleChange} />
+        </div>
+      )}
+      {hidden ? <div className="opacity-40 grayscale">{content}</div> : content}
     </div>
   );
 }
