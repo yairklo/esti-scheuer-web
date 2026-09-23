@@ -61,11 +61,11 @@ export default function CustomSection({
   );
 
   return (
-    <section className={data.background === "tint" ? "bg-sage-light/60" : undefined}>
+    <section>
       <div className={`mx-auto max-w-6xl px-6 ${s.pad}`}>
         {editable && (
-          <div className="edit-ui mx-auto mb-8 flex max-w-3xl flex-wrap items-end gap-4 rounded-2xl border border-dashed border-sage bg-card/80 p-4 text-sm">
-            <label className="min-w-[14rem] flex-1">
+          <div className="edit-ui mx-auto mb-8 max-w-md rounded-2xl border border-dashed border-sage bg-card/80 p-4 text-sm">
+            <label className="block">
               <span className="block font-medium text-ink-soft">
                 שם בתפריט העליון (אפשר להשאיר ריק)
               </span>
@@ -76,23 +76,6 @@ export default function CustomSection({
                 className="mt-1.5 w-full rounded-lg border border-sand bg-white px-3 py-2 text-ink outline-none focus:border-sage"
               />
             </label>
-            <div>
-              <span className="block font-medium text-ink-soft">רקע</span>
-              <div className="mt-1.5 flex gap-1 rounded-lg border border-sand bg-white p-1">
-                {(["plain", "tint"] as const).map((bg) => (
-                  <button
-                    key={bg}
-                    type="button"
-                    onClick={() => onChange({ ...data, background: bg })}
-                    className={`rounded-md px-3 py-1 ${
-                      data.background === bg ? "bg-sage text-white" : "text-ink-soft"
-                    }`}
-                  >
-                    {bg === "plain" ? "בהיר" : "ירקרק"}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

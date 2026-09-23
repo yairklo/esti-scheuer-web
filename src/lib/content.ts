@@ -90,7 +90,9 @@ export type CustomData = {
   text: string;
   media: MediaItem[];
   mediaLayout?: MediaLayout;
-  background: "plain" | "tint";
+  // Legacy: the old per-section "light / greenish" toggle, superseded by the
+  // design panel's background colour. normalize() converts it on read.
+  background?: "plain" | "tint";
 };
 
 export type Section =
@@ -295,10 +297,29 @@ function normalize(raw: Record<string, unknown>): SiteContent {
       meta: { ...defaultContent.meta, ...(raw.meta as object) },
       footer: { ...defaultContent.footer, ...(raw.footer as object) },
       social: { ...defaultContent.social, ...(raw.social as object) },
-      sections: raw.sections as Section[],
+      sections: (raw.sections as Section[]).map(migrateTintBackground),
     };
   }
   return migrateLegacy(raw);
+}
+
+// The greenish look from the old toggle, as a solid colour (sage-light at 60%
+// over the cream page background), so converted sections look the same.
+const LEGACY_TINT = "#edefe2";
+
+// Custom sections saved with the old "greenish" toggle get that colour as a
+// design-panel background instead, where it can be changed or reset.
+function migrateTintBackground(section: Section): Section {
+  if (section.type !== "custom" || section.data.background === undefined) return section;
+  const { background, ...data } = section.data;
+  return {
+    ...section,
+    data,
+    style:
+      background === "tint" && !section.style.bg
+        ? { ...section.style, bg: LEGACY_TINT }
+        : section.style,
+  };
 }
 
 const CONTENT_ID = 1;

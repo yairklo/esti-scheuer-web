@@ -57,7 +57,6 @@ export function createSection(type: AddableSectionType): Section {
       heading: "כותרת הסקשן",
       text: "כאן כותבים את תוכן הסקשן.",
       media: [],
-      background: "plain",
     },
   };
 }
