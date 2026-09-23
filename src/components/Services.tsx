@@ -65,7 +65,7 @@ export default function Services({
                 type="button"
                 onClick={() => removeItem(i)}
                 title="הסרת התחום"
-                className="absolute left-4 top-4 text-terracotta-dark"
+                className="edit-ui absolute left-4 top-4 text-terracotta-dark"
               >
                 ×
               </button>
@@ -94,7 +94,7 @@ export default function Services({
           <button
             type="button"
             onClick={addItem}
-            className="rounded-2xl border border-dashed border-sage p-7 text-sm font-medium text-sage-dark hover:bg-sage-light"
+            className="edit-ui rounded-2xl border border-dashed border-sage p-7 text-sm font-medium text-sage-dark hover:bg-sage-light"
           >
             + הוספת תחום טיפול
           </button>

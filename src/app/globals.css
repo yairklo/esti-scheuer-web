@@ -53,6 +53,22 @@ body {
   --text-6xl: calc(3.75rem * var(--text-scale, 1));
 }
 
+/* Edit-only controls inside a section (upload buttons, gallery toolbars,
+   "+ add" buttons…) are marked .edit-ui and keep the standard look: the text
+   size tokens are reset here and the colour rules below skip them. */
+.section-design .edit-ui {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+}
+
 .section-design[data-bg] {
   background-color: var(--section-bg);
 }
@@ -62,10 +78,10 @@ body {
   background: transparent;
 }
 
-.section-design[data-heading-color] :is(h1, h2, h3, summary) {
+.section-design[data-heading-color] :is(h1, h2, h3, summary):not(.edit-ui *) {
   color: var(--section-heading);
 }
 
-.section-design[data-text-color] :is(p, li, [data-body]) {
+.section-design[data-text-color] :is(p, li, [data-body]):not(.edit-ui, .edit-ui *) {
   color: var(--section-text);
 }

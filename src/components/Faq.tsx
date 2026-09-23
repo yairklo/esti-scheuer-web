@@ -67,7 +67,7 @@ export default function Faq({
                 type="button"
                 onClick={() => removeItem(i)}
                 title="הסרת השאלה"
-                className="absolute left-4 top-4 text-terracotta-dark"
+                className="edit-ui absolute left-4 top-4 text-terracotta-dark"
               >
                 ×
               </button>
@@ -121,7 +121,7 @@ export default function Faq({
           <button
             type="button"
             onClick={addItem}
-            className="w-full rounded-2xl border border-dashed border-sage p-5 text-sm font-medium text-sage-dark hover:bg-sage-light"
+            className="edit-ui w-full rounded-2xl border border-dashed border-sage p-5 text-sm font-medium text-sage-dark hover:bg-sage-light"
           >
             + הוספת שאלה
           </button>

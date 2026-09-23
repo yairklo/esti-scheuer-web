@@ -64,7 +64,7 @@ export default function CustomSection({
     <section className={data.background === "tint" ? "bg-sage-light/60" : undefined}>
       <div className={`mx-auto max-w-6xl px-6 ${s.pad}`}>
         {editable && (
-          <div className="mx-auto mb-8 flex max-w-3xl flex-wrap items-end gap-4 rounded-2xl border border-dashed border-sage bg-card/80 p-4 text-sm">
+          <div className="edit-ui mx-auto mb-8 flex max-w-3xl flex-wrap items-end gap-4 rounded-2xl border border-dashed border-sage bg-card/80 p-4 text-sm">
             <label className="min-w-[14rem] flex-1">
               <span className="block font-medium text-ink-soft">
                 שם בתפריט העליון (אפשר להשאיר ריק)

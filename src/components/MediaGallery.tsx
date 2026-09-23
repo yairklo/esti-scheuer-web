@@ -220,7 +220,7 @@ function MediaView({
     const embed = toEmbed(item.src);
     if (!embed) {
       return (
-        <div className="flex aspect-video items-center justify-center rounded-2xl bg-sand/60 p-4 text-center text-sm text-ink-soft">
+        <div className="edit-ui flex aspect-video items-center justify-center rounded-2xl bg-sand/60 p-4 text-center text-sm text-ink-soft">
           {editable ? "הדביקי למטה קישור לסרטון או לפוסט" : null}
         </div>
       );
@@ -465,7 +465,7 @@ export default function MediaGallery({
           <MediaView item={item} alt={alt} fill={framed} editable />
         </div>
 
-        <div className="absolute inset-x-2 top-2 flex flex-wrap items-center justify-between gap-1 rounded-xl bg-white/95 p-1 text-xs shadow">
+        <div className="edit-ui absolute inset-x-2 top-2 flex flex-wrap items-center justify-between gap-1 rounded-xl bg-white/95 p-1 text-xs shadow">
           <div className="flex items-center gap-0.5">
             <span className="px-1 text-ink-soft" title="אפשר לגרור כדי להזיז">
               ⠿
@@ -517,7 +517,7 @@ export default function MediaGallery({
         </div>
 
         {item.kind === "video" && (
-          <div className="mt-2">
+          <div className="edit-ui mt-2">
             <input
               type="url"
               dir="ltr"
@@ -546,7 +546,7 @@ export default function MediaGallery({
   return (
     <div>
       {editable && (
-        <div className="mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-dashed border-sage bg-card/80 p-3 text-xs">
+        <div className="edit-ui mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-dashed border-sage bg-card/80 p-3 text-xs">
           <Segmented
             label="תצוגה:"
             value={layout.mode}
@@ -618,7 +618,7 @@ export default function MediaGallery({
       )}
 
       {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-sand py-10 text-center text-sm text-ink-soft">
+        <p className="edit-ui rounded-2xl border border-dashed border-sand py-10 text-center text-sm text-ink-soft">
           עדיין אין תמונות או סרטונים
         </p>
       ) : isCarousel ? (
