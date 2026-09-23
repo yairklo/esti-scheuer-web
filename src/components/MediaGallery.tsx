@@ -89,6 +89,71 @@ function InstagramFrame({ src, title, editable }: { src: string; title: string; 
   );
 }
 
+// Social post cards can be very tall (long captions, portrait photos), so
+// they're capped with a fade and a "show more" toggle. The toggle only appears
+// when the card really is taller than the cap; heights are re-measured as the
+// embed resizes itself after loading.
+const POST_MAX_HEIGHT = 480;
+
+function CollapsiblePost({ maxWidth, children }: { maxWidth: string; children: React.ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    // Small slack so a card only a few pixels over the cap isn't clipped.
+    const measure = () => setOverflows(el.offsetHeight > POST_MAX_HEIGHT + 40);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const collapsed = overflows && !expanded;
+
+  function toggle() {
+    if (expanded) {
+      // Collapsing a long card can leave its top above the viewport — bring
+      // it back so the reader isn't stranded further down the page.
+      const top = outerRef.current?.getBoundingClientRect().top ?? 0;
+      if (top < 0) outerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+    setExpanded((v) => !v);
+  }
+
+  return (
+    <div ref={outerRef} className={`mx-auto w-full ${maxWidth}`}>
+      <div
+        className="relative overflow-hidden rounded-2xl"
+        style={collapsed ? { maxHeight: POST_MAX_HEIGHT } : undefined}
+      >
+        <div ref={innerRef}>{children}</div>
+        {collapsed && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/80 to-transparent"
+          />
+        )}
+      </div>
+      {overflows && (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={expanded}
+            className="rounded-full border border-sage bg-white px-4 py-1.5 text-sm font-medium text-sage-dark shadow-sm hover:bg-sage-light"
+          >
+            {expanded ? "הצג פחות ▴" : "הצג עוד ▾"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmbedView({
   embed,
   alt,
@@ -106,14 +171,18 @@ function EmbedView({
 
   if (embed.provider === "instagram") {
     return (
-      <div className="mx-auto w-full max-w-[540px]">
+      <CollapsiblePost maxWidth="max-w-[540px]">
         <InstagramFrame src={embed.src} title={alt} editable={editable} />
-      </div>
+      </CollapsiblePost>
     );
   }
 
   if (embed.provider === "facebook" && embed.shape === "post" && embed.href) {
-    return <FacebookPost href={embed.href} editable={editable} />;
+    return (
+      <CollapsiblePost maxWidth="max-w-[500px]">
+        <FacebookPost href={embed.href} editable={editable} />
+      </CollapsiblePost>
+    );
   }
 
   const frame =
