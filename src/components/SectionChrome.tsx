@@ -19,9 +19,11 @@ export function SectionChrome({
   style,
   onMoveUp,
   onMoveDown,
-  onHide,
+  hidden,
+  onToggleHidden,
   onFontChange,
   onSizeChange,
+  onDelete,
   children,
 }: {
   id: string;
@@ -32,9 +34,14 @@ export function SectionChrome({
   style: SectionStyle;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  onHide: () => void;
+  // Hidden sections stay on the page in edit mode (dimmed) so they can be
+  // brought back in place; visitors never see them.
+  hidden: boolean;
+  onToggleHidden: () => void;
   onFontChange: (f: FontKey) => void;
   onSizeChange: (s: SectionSize) => void;
+  // Only for sections she created herself; built-in sections can just be hidden.
+  onDelete?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -43,6 +50,11 @@ export function SectionChrome({
         <div className="flex justify-center bg-cream/80 py-2">
           <div className="flex flex-wrap items-center justify-center gap-2 rounded-full border border-sand bg-white px-3 py-1.5 text-xs shadow-sm">
             <span className="px-1 font-semibold text-ink-soft">{label}</span>
+            {hidden && (
+              <span className="rounded-full bg-ink/80 px-2 py-0.5 font-medium text-white">
+                מוסתר מהאתר
+              </span>
+            )}
             <button
               type="button"
               onClick={onMoveUp}
@@ -87,18 +99,39 @@ export function SectionChrome({
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={onHide}
-              title="הסתרת הסקשן"
-              className="rounded px-1.5 py-0.5 text-terracotta-dark hover:bg-terracotta/10"
-            >
-              הסתרה 🗑
-            </button>
+            {hidden ? (
+              <button
+                type="button"
+                onClick={onToggleHidden}
+                title="החזרת הסקשן לאתר"
+                className="rounded bg-sage px-2 py-0.5 font-medium text-white hover:bg-sage-dark"
+              >
+                הצגה באתר
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onToggleHidden}
+                title="הסתרת הסקשן מהאתר"
+                className="rounded px-1.5 py-0.5 text-terracotta-dark hover:bg-terracotta/10"
+              >
+                הסתרה
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                title="מחיקת הסקשן לצמיתות"
+                className="rounded px-1.5 py-0.5 text-terracotta-dark hover:bg-terracotta/10"
+              >
+                מחיקה 🗑
+              </button>
+            )}
           </div>
         </div>
       )}
-      {children}
+      {hidden ? <div className="opacity-40 grayscale">{children}</div> : children}
     </div>
   );
 }

@@ -9,6 +9,7 @@ export function EditableText({
   as = "span",
   className,
   multiline = false,
+  placeholder,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -16,6 +17,9 @@ export function EditableText({
   as?: TagName;
   className?: string;
   multiline?: boolean;
+  // Shown (edit mode only) while the field is empty — otherwise an empty
+  // field collapses to a sliver of dashed outline that's nearly impossible to find.
+  placeholder?: string;
 }) {
   const Tag = as as React.ElementType;
 
@@ -42,7 +46,12 @@ export function EditableText({
       contentEditable
       suppressContentEditableWarning
       style={multiline ? { whiteSpace: "pre-wrap" } : undefined}
-      className={`${className ?? ""} cursor-text rounded px-1 -mx-1 outline-dashed outline-1 outline-sage/40 transition-[outline] hover:outline-sage focus:outline-2 focus:outline-sage`}
+      data-placeholder={placeholder}
+      className={`${className ?? ""} ${
+        placeholder
+          ? "empty:inline-block empty:min-w-[12rem] empty:before:italic empty:before:opacity-60 empty:before:content-[attr(data-placeholder)]"
+          : ""
+      } cursor-text rounded px-1 -mx-1 outline-dashed outline-1 outline-sage/40 transition-[outline] hover:outline-sage focus:outline-2 focus:outline-sage`}
       onBlur={(e: React.FocusEvent<HTMLElement>) => {
         const text = e.currentTarget.innerText.replace(/\n{3,}/g, "\n\n").trim();
         onChange(text);

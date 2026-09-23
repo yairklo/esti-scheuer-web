@@ -6,6 +6,15 @@ import type { SiteContent } from "@/lib/content";
 import { Card, Field, TextInput, TextArea } from "./fields";
 import { fileToResizedDataUrl } from "@/lib/image";
 import ChangePasswordCard from "./ChangePasswordCard";
+import { SOCIAL_KEYS, SOCIAL_LABELS, type SocialKey } from "@/lib/social";
+
+const SOCIAL_PLACEHOLDERS: Record<SocialKey, string> = {
+  whatsapp: "050-1234567",
+  instagram: "https://instagram.com/...",
+  facebook: "https://facebook.com/...",
+  tiktok: "https://tiktok.com/@...",
+  youtube: "https://youtube.com/@...",
+};
 
 type Status = "idle" | "saving" | "saved" | "error";
 
@@ -105,6 +114,31 @@ export default function SettingsForm({
               }
             />
           </Field>
+        </Card>
+
+        <Card
+          title="רשתות חברתיות"
+          description="מדביקים את הקישור לעמוד שלך בכל רשת. אייקון יופיע באתר (בתחתית העמוד ובסקשן יצירת קשר) רק לרשתות שמולא בהן קישור."
+        >
+          {SOCIAL_KEYS.map((key) => (
+            <Field
+              key={key}
+              label={key === "whatsapp" ? "WhatsApp — מספר טלפון" : SOCIAL_LABELS[key]}
+            >
+              <TextInput
+                dir="ltr"
+                inputMode={key === "whatsapp" ? "tel" : "url"}
+                placeholder={SOCIAL_PLACEHOLDERS[key]}
+                value={content.social[key]}
+                onChange={(e) =>
+                  setContent((c) => ({
+                    ...c,
+                    social: { ...c.social, [key]: e.target.value },
+                  }))
+                }
+              />
+            </Field>
+          ))}
         </Card>
 
         <Card

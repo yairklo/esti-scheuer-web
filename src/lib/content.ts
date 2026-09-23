@@ -46,14 +46,65 @@ export type ContactData = {
   area: string;
 };
 
+export type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+export type FaqData = {
+  heading: string;
+  intro: string;
+  items: FaqItem[];
+};
+
+// A free-form section she can add as many times as she likes, anywhere on the
+// page. Videos are YouTube/Vimeo links (embedded), never uploaded files —
+// uploads are stored as data URLs inside the content JSON, which only suits
+// a handful of resized images.
+export type MediaSize = "sm" | "md" | "lg" | "full";
+
+export type MediaItem = {
+  kind: "image" | "video";
+  src: string;
+  size?: MediaSize; // width in the grid layout; default "md"
+};
+
+// Layout options were added after the first custom sections were saved, so
+// they're optional and the defaults live in MediaGallery.
+export type MediaLayout = {
+  mode?: "grid" | "carousel"; // default "grid"
+  position?: "below" | "above" | "side"; // relative to the text; default "below"
+  align?: "start" | "center" | "end"; // grid only; default "center"
+  perView?: 1 | 2 | 3; // carousel only: items visible at once; default 2
+};
+
+export type CustomData = {
+  navLabel: string; // shown in the top menu; empty = not in the menu
+  heading: string;
+  text: string;
+  media: MediaItem[];
+  mediaLayout?: MediaLayout;
+  background: "plain" | "tint";
+};
+
 export type Section =
   | { id: string; type: "hero"; visible: boolean; style: SectionStyle; data: HeroData }
   | { id: string; type: "about"; visible: boolean; style: SectionStyle; data: AboutData }
   | { id: string; type: "approach"; visible: boolean; style: SectionStyle; data: ApproachData }
   | { id: string; type: "services"; visible: boolean; style: SectionStyle; data: ServicesData }
+  | { id: string; type: "custom"; visible: boolean; style: SectionStyle; data: CustomData }
+  | { id: string; type: "faq"; visible: boolean; style: SectionStyle; data: FaqData }
   | { id: string; type: "contact"; visible: boolean; style: SectionStyle; data: ContactData };
 
 export type SectionType = Section["type"];
+
+export type SocialLinks = {
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  youtube: string;
+  whatsapp: string;
+};
 
 export type SiteContent = {
   meta: {
@@ -64,6 +115,7 @@ export type SiteContent = {
   footer: {
     text: string;
   };
+  social: SocialLinks;
   sections: Section[];
 };
 
@@ -78,6 +130,13 @@ export const defaultContent: SiteContent = {
   },
   footer: {
     text: "אסתי שויער — מטפלת בנוירופידבק",
+  },
+  social: {
+    instagram: "",
+    facebook: "",
+    tiktok: "",
+    youtube: "",
+    whatsapp: "",
   },
   sections: [
     {
@@ -219,6 +278,7 @@ function migrateLegacy(old: Record<string, unknown>): SiteContent {
   return {
     meta: { ...defaultContent.meta, ...(old.meta as object) },
     footer: { ...defaultContent.footer, ...(old.footer as object) },
+    social: { ...defaultContent.social, ...(old.social as object) },
     sections: legacySections,
   };
 }
@@ -228,6 +288,7 @@ function normalize(raw: Record<string, unknown>): SiteContent {
     return {
       meta: { ...defaultContent.meta, ...(raw.meta as object) },
       footer: { ...defaultContent.footer, ...(raw.footer as object) },
+      social: { ...defaultContent.social, ...(raw.social as object) },
       sections: raw.sections as Section[],
     };
   }
