@@ -54,10 +54,9 @@ export function createSection(type: AddableSectionType): Section {
     style: { ...STYLE },
     data: {
       navLabel: "",
-      heading: "כותרת הסקשן",
-      text: "כאן כותבים את תוכן הסקשן.",
+      heading: "כותרת הבלוק",
+      text: "כאן כותבים את תוכן הבלוק.",
       media: [],
-      background: "plain",
     },
   };
 }

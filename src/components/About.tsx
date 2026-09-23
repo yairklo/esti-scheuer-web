@@ -70,7 +70,7 @@ export default function About({
           )}
 
           {editable && (
-            <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2">
+            <div className="edit-ui absolute inset-x-0 bottom-1 flex justify-center gap-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -133,7 +133,7 @@ export default function About({
                     <button
                       type="button"
                       onClick={() => removeCredential(i)}
-                      className="text-terracotta-dark"
+                      className="edit-ui text-terracotta-dark"
                       title="הסרה"
                     >
                       ×
@@ -142,7 +142,7 @@ export default function About({
                 </li>
               ))}
               {editable && (
-                <li>
+                <li className="edit-ui">
                   <button
                     type="button"
                     onClick={addCredential}

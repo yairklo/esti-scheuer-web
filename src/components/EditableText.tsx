@@ -26,7 +26,7 @@ export function EditableText({
   if (!editable) {
     if (multiline) {
       return (
-        <Tag className={className}>
+        <Tag className={className} data-body="">
           {value
             .split("\n")
             .filter(Boolean)
@@ -46,6 +46,9 @@ export function EditableText({
       contentEditable
       suppressContentEditableWarning
       style={multiline ? { whiteSpace: "pre-wrap" } : undefined}
+      // Marks body text so a section's custom text colour reaches it in edit
+      // mode too (where it's one div, not separate <p>s).
+      data-body={multiline ? "" : undefined}
       data-placeholder={placeholder}
       className={`${className ?? ""} ${
         placeholder

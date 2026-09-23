@@ -35,3 +35,53 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Per-section design overrides (set from edit mode, applied by SectionChrome).
+   Tailwind v4's text-* and colour utilities read theme variables, so
+   redefining the size tokens here scales every text size inside the section.
+   These rules are unlayered, so they win over the layered utilities. */
+.section-design {
+  --text-xs: calc(0.75rem * var(--text-scale, 1));
+  --text-sm: calc(0.875rem * var(--text-scale, 1));
+  --text-base: calc(1rem * var(--text-scale, 1));
+  --text-lg: calc(1.125rem * var(--text-scale, 1));
+  --text-xl: calc(1.25rem * var(--text-scale, 1));
+  --text-2xl: calc(1.5rem * var(--text-scale, 1));
+  --text-3xl: calc(1.875rem * var(--text-scale, 1));
+  --text-4xl: calc(2.25rem * var(--text-scale, 1));
+  --text-5xl: calc(3rem * var(--text-scale, 1));
+  --text-6xl: calc(3.75rem * var(--text-scale, 1));
+}
+
+/* Edit-only controls inside a section (upload buttons, gallery toolbars,
+   "+ add" buttons…) are marked .edit-ui and keep the standard look: the text
+   size tokens are reset here and the colour rules below skip them. */
+.section-design .edit-ui {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+}
+
+.section-design[data-bg] {
+  background-color: var(--section-bg);
+}
+
+/* The section's own background would cover the chosen colour. */
+.section-design[data-bg] > section {
+  background: transparent;
+}
+
+.section-design[data-heading-color] :is(h1, h2, h3, summary):not(.edit-ui *) {
+  color: var(--section-heading);
+}
+
+.section-design[data-text-color] :is(p, li, [data-body]):not(.edit-ui, .edit-ui *) {
+  color: var(--section-text);
+}

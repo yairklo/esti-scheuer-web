@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { ADDABLE_SECTIONS, createSection, type AddableSectionType } from "@/lib/new-sections";
 import type {
   ContactData,
-  FontKey,
   Section,
   SectionType,
   SiteContent,
-  SectionSize,
 } from "@/lib/content";
 import Header, { type NavItem } from "./Header";
 import Footer from "./Footer";
@@ -28,7 +26,7 @@ const SECTION_LABELS: Record<SectionType, string> = {
   about: "עליי",
   approach: "גישה טיפולית",
   services: "תחומי טיפול",
-  custom: "סקשן חדש",
+  custom: "בלוק חדש",
   faq: "שאלות נפוצות",
   contact: "יצירת קשר",
 };
@@ -129,24 +127,15 @@ export default function SiteShell({
   }
 
   function deleteSection(id: string) {
-    if (!window.confirm("למחוק את הסקשן לצמיתות? (אפשר גם רק להסתיר אותו)")) return;
+    if (!window.confirm("למחוק את הבלוק לצמיתות? (אפשר גם רק להסתיר אותו)")) return;
     setContent((c) => ({ ...c, sections: c.sections.filter((s) => s.id !== id) }));
   }
 
-  function setFont(id: string, font: FontKey) {
+  function setStyle(id: string, patch: Partial<Section["style"]>) {
     setContent((c) => ({
       ...c,
       sections: c.sections.map((s) =>
-        s.id === id ? { ...s, style: { ...s.style, font } } : s
-      ),
-    }));
-  }
-
-  function setSize(id: string, size: SectionSize) {
-    setContent((c) => ({
-      ...c,
-      sections: c.sections.map((s) =>
-        s.id === id ? { ...s, style: { ...s.style, size } } : s
+        s.id === id ? { ...s, style: { ...s.style, ...patch } } : s
       ),
     }));
   }
@@ -192,7 +181,7 @@ export default function SiteShell({
       <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-xs font-medium">
         {pickerAt === key ? (
           <>
-            <span className="text-ink-soft">איזה סקשן להוסיף?</span>
+            <span className="text-ink-soft">איזה בלוק להוסיף?</span>
             {ADDABLE_SECTIONS.map((opt) => (
               <button
                 key={opt.type}
@@ -217,7 +206,7 @@ export default function SiteShell({
             onClick={() => setPickerAt(key)}
             className="rounded-full border border-dashed border-sage bg-cream px-4 py-1.5 text-sage-dark hover:bg-sage-light"
           >
-            + הוספת סקשן כאן
+            + הוספת בלוק כאן
           </button>
         )}
       </div>
@@ -243,8 +232,7 @@ export default function SiteShell({
               onMoveDown={() => moveSection(section.id, 1)}
               hidden={!section.visible}
               onToggleHidden={() => setVisible(section.id, !section.visible)}
-              onFontChange={(f) => setFont(section.id, f)}
-              onSizeChange={(sz) => setSize(section.id, sz)}
+              onStyleChange={(patch) => setStyle(section.id, patch)}
               onDelete={
                 ADDABLE_SECTIONS.some((a) => a.type === section.type)
                   ? () => deleteSection(section.id)
