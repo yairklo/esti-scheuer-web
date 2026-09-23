@@ -96,6 +96,17 @@ export default function SiteShell({
     }));
   }
 
+  // Like updateSectionData, but derives the new data from the current state —
+  // for changes that finish asynchronously (e.g. image uploads).
+  function updateSectionDataWith<D extends Section["data"]>(id: string, fn: (d: D) => D) {
+    setContent((c) => ({
+      ...c,
+      sections: c.sections.map((s) =>
+        s.id === id ? ({ ...s, data: fn(s.data as D) } as Section) : s
+      ),
+    }));
+  }
+
   function moveSection(id: string, dir: -1 | 1) {
     setContent((c) => {
       const idx = c.sections.findIndex((s) => s.id === id);
@@ -277,6 +288,7 @@ export default function SiteShell({
                   size={section.style.size}
                   editable={editMode}
                   onChange={(d) => updateSectionData(section.id, d)}
+                  onUpdate={(fn) => updateSectionDataWith(section.id, fn)}
                 />
               )}
               {section.type === "faq" && (

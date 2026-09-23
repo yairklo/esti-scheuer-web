@@ -1,5 +1,7 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
+
 type TagName = "h1" | "h2" | "h3" | "p" | "span" | "div";
 
 export function EditableText({
@@ -22,6 +24,19 @@ export function EditableText({
   placeholder?: string;
 }) {
   const Tag = as as React.ElementType;
+  const ref = useRef<HTMLElement>(null);
+
+  // The editable element's text is owned by the browser while she types
+  // (Enter adds <div>/<br> nodes React doesn't know about), so React never
+  // renders it as children. Instead the DOM is synced here whenever the value
+  // changes from outside — e.g. deleting a list item hands this element the
+  // next item's text. Skipped while focused so the caret isn't reset.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && el !== document.activeElement && el.textContent !== value) {
+      el.textContent = value;
+    }
+  }, [value, editable]);
 
   if (!editable) {
     if (multiline) {
@@ -43,8 +58,11 @@ export function EditableText({
 
   return (
     <Tag
+      // Keyed so switching modes remounts the element instead of React
+      // reconciling children into DOM text it didn't create.
+      key="edit"
+      ref={ref}
       contentEditable
-      suppressContentEditableWarning
       style={multiline ? { whiteSpace: "pre-wrap" } : undefined}
       // Marks body text so a section's custom text colour reaches it in edit
       // mode too (where it's one div, not separate <p>s).
@@ -59,8 +77,6 @@ export function EditableText({
         const text = e.currentTarget.innerText.replace(/\n{3,}/g, "\n\n").trim();
         onChange(text);
       }}
-    >
-      {value}
-    </Tag>
+    />
   );
 }

@@ -366,6 +366,7 @@ export default function MediaGallery({
   alt,
   editable,
   onMediaChange,
+  onMediaAdd,
   onLayoutChange,
 }: {
   media: MediaItem[];
@@ -373,6 +374,9 @@ export default function MediaGallery({
   alt: string;
   editable: boolean;
   onMediaChange: (media: MediaItem[]) => void;
+  // Appends to whatever the media list is by the time the items are ready —
+  // uploads are async, and edits made meanwhile must not be overwritten.
+  onMediaAdd: (items: MediaItem[]) => void;
   onLayoutChange: (layout: MediaLayout) => void;
 }) {
   const layout = resolveLayout(rawLayout);
@@ -399,13 +403,22 @@ export default function MediaGallery({
     if (files.length === 0) return;
     setUploading(true);
     try {
-      const added = await Promise.all(
-        files.map(async (f) => ({
-          kind: "image" as const,
-          src: await fileToResizedDataUrl(f, 1200, "image/jpeg", 0.8),
-        }))
+      // One unreadable file (e.g. HEIC in a browser that can't decode it)
+      // shouldn't throw away the rest of the batch.
+      const results = await Promise.allSettled(
+        files.map((f) => fileToResizedDataUrl(f, 1200, "image/jpeg", 0.8))
       );
-      onMediaChange([...media, ...added]);
+      const added = results.flatMap((r) =>
+        r.status === "fulfilled" ? [{ kind: "image" as const, src: r.value }] : []
+      );
+      if (added.length > 0) onMediaAdd(added);
+      if (added.length < files.length) {
+        window.alert(
+          added.length === 0
+            ? "לא ניתן היה לטעון את התמונות. נסי קובץ JPG או PNG."
+            : "חלק מהתמונות לא נטענו. נסי אותן שוב כקובץ JPG או PNG."
+        );
+      }
     } finally {
       setUploading(false);
     }

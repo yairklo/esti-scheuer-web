@@ -30,12 +30,17 @@ function loadSdk(): Promise<FBGlobal> {
 }
 
 // Facebook accepts widths between 350 and 750px for embedded posts.
-const clampWidth = (w: number) => Math.round(Math.min(750, Math.max(350, w)));
+const MIN_WIDTH = 350;
+const clampWidth = (w: number) => Math.round(Math.min(750, Math.max(MIN_WIDTH, w)));
 
 export default function FacebookPost({ href, editable }: { href: string; editable: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const postRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  // Most phones leave less than 350px for the post, so there it's rendered at
+  // 350px and scaled down to fit rather than being cut off.
+  const [scale, setScale] = useState(1);
+  const [postHeight, setPostHeight] = useState(0);
   const [failed, setFailed] = useState(false);
 
   // The post is rendered at a fixed pixel width, so track the container and
@@ -44,8 +49,10 @@ export default function FacebookPost({ href, editable }: { href: string; editabl
     const el = wrapRef.current;
     if (!el) return;
     const measure = () => {
-      const next = clampWidth(el.clientWidth);
+      const available = el.clientWidth;
+      const next = clampWidth(available);
       setWidth((prev) => (prev !== null && Math.abs(prev - next) < 40 ? prev : next));
+      setScale(available > 0 && available < MIN_WIDTH ? available / MIN_WIDTH : 1);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -66,6 +73,18 @@ export default function FacebookPost({ href, editable }: { href: string; editabl
     };
   }, [href, width]);
 
+  // A CSS transform doesn't change layout size, so while scaled the box is
+  // given the post's scaled height explicitly.
+  useEffect(() => {
+    const el = postRef.current?.parentElement;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setPostHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [href, width]);
+
+  const scaled = scale < 1;
+
   return (
     <div
       ref={wrapRef}
@@ -84,16 +103,28 @@ export default function FacebookPost({ href, editable }: { href: string; editabl
         </a>
       ) : (
         width !== null && (
-          // Keyed so a new link or width gets a fresh element: the SDK replaces
-          // this div's contents, which React must not try to reconcile.
-          <div key={`${href}|${width}`}>
+          // ltr so an over-wide post overflows to the right, matching the
+          // top-left transform origin. Until the height is measured the box
+          // keeps its natural (unscaled) height: spare room beats a hidden post.
+          <div dir="ltr" style={scaled && postHeight > 0 ? { height: postHeight * scale } : undefined}>
+            {/* Keyed so a new link or width gets a fresh element: the SDK
+                replaces this div's contents, which React must not try to reconcile. */}
             <div
-              ref={postRef}
-              className="fb-post"
-              data-href={href}
-              data-width={width}
-              data-show-text="true"
-            />
+              key={`${href}|${width}`}
+              style={
+                scaled
+                  ? { width, transform: `scale(${scale})`, transformOrigin: "top left" }
+                  : undefined
+              }
+            >
+              <div
+                ref={postRef}
+                className="fb-post"
+                data-href={href}
+                data-width={width}
+                data-show-text="true"
+              />
+            </div>
           </div>
         )
       )}
