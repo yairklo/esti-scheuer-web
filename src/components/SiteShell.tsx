@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ADDABLE_SECTIONS, createSection, type AddableSectionType } from "@/lib/new-sections";
 import type {
   ContactData,
   FontKey,
@@ -17,6 +18,9 @@ import About from "./About";
 import Approach from "./Approach";
 import Services from "./Services";
 import Contact from "./Contact";
+import CustomSection from "./CustomSection";
+import Faq from "./Faq";
+import AdminToolbar from "./AdminToolbar";
 import { SectionChrome } from "./SectionChrome";
 
 const SECTION_LABELS: Record<SectionType, string> = {
@@ -24,6 +28,8 @@ const SECTION_LABELS: Record<SectionType, string> = {
   about: "עליי",
   approach: "גישה טיפולית",
   services: "תחומי טיפול",
+  custom: "סקשן חדש",
+  faq: "שאלות נפוצות",
   contact: "יצירת קשר",
 };
 
@@ -31,8 +37,23 @@ const NAV_LABELS: Partial<Record<SectionType, string>> = {
   about: "עליי",
   approach: "הגישה הטיפולית",
   services: "תחומי טיפול",
+  faq: "שאלות נפוצות",
   contact: "יצירת קשר",
 };
+
+// Custom sections are named by her; fall back to the heading so each one is
+// still recognisable in the edit toolbar and the hidden-sections list.
+function sectionLabel(section: Section): string {
+  if (section.type === "custom") {
+    return section.data.navLabel.trim() || section.data.heading.trim() || SECTION_LABELS.custom;
+  }
+  return SECTION_LABELS[section.type];
+}
+
+function navLabel(section: Section): string | undefined {
+  if (section.type === "custom") return section.data.navLabel.trim() || undefined;
+  return NAV_LABELS[section.type];
+}
 
 type Status = "idle" | "saving" | "saved" | "error";
 
@@ -47,6 +68,9 @@ export default function SiteShell({
   const [content, setContent] = useState(initialContent);
   const [editMode, setEditMode] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
+  // Which "+ add section" spot has its type picker open: a section id, "top"
+  // for above the first section, or null when none is open.
+  const [pickerAt, setPickerAt] = useState<string | null>(null);
 
   useEffect(() => {
     // Reads a browser-only external source (localStorage) after mount, so
@@ -92,6 +116,23 @@ export default function SiteShell({
     }));
   }
 
+  // Inserts a new section right after `afterId` (or at the very top when
+  // null). Positions are in the full list, hidden sections included.
+  function addSectionAfter(afterId: string | null, type: AddableSectionType) {
+    setContent((c) => {
+      const at = afterId === null ? 0 : c.sections.findIndex((s) => s.id === afterId) + 1;
+      const next = [...c.sections];
+      next.splice(at, 0, createSection(type));
+      return { ...c, sections: next };
+    });
+    setPickerAt(null);
+  }
+
+  function deleteSection(id: string) {
+    if (!window.confirm("למחוק את הסקשן לצמיתות? (אפשר גם רק להסתיר אותו)")) return;
+    setContent((c) => ({ ...c, sections: c.sections.filter((s) => s.id !== id) }));
+  }
+
   function setFont(id: string, font: FontKey) {
     setContent((c) => ({
       ...c,
@@ -132,143 +173,166 @@ export default function SiteShell({
   }
 
   const visibleSections = content.sections.filter((s) => s.visible);
-  const hiddenSections = content.sections.filter((s) => !s.visible);
+  // Edit mode shows every section (hidden ones dimmed, in place); visitors
+  // only see the visible ones.
+  const shownSections = editMode ? content.sections : visibleSections;
   const contactData = content.sections.find(
     (s): s is Extract<Section, { type: "contact" }> => s.type === "contact"
   )?.data as ContactData | undefined;
 
-  const navItems: NavItem[] = visibleSections
-    .filter((s) => NAV_LABELS[s.type])
-    .map((s) => ({ id: s.id, label: NAV_LABELS[s.type]! }));
+  const navItems: NavItem[] = visibleSections.flatMap((s) => {
+    const label = navLabel(s);
+    return label ? [{ id: s.id, label }] : [];
+  });
+
+  const addHere = (afterId: string | null) => {
+    if (!editMode) return null;
+    const key = afterId ?? "top";
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-xs font-medium">
+        {pickerAt === key ? (
+          <>
+            <span className="text-ink-soft">איזה סקשן להוסיף?</span>
+            {ADDABLE_SECTIONS.map((opt) => (
+              <button
+                key={opt.type}
+                type="button"
+                onClick={() => addSectionAfter(afterId, opt.type)}
+                className="rounded-full bg-sage px-4 py-1.5 text-white hover:bg-sage-dark"
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPickerAt(null)}
+              className="px-2 py-1.5 text-ink-soft underline"
+            >
+              ביטול
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPickerAt(key)}
+            className="rounded-full border border-dashed border-sage bg-cream px-4 py-1.5 text-sage-dark hover:bg-sage-light"
+          >
+            + הוספת סקשן כאן
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-1 flex-col">
       <Header phone={contactData?.phone ?? ""} navItems={navItems} />
 
       <main className="flex-1">
-        {visibleSections.map((section, i) => (
-          <SectionChrome
-            key={section.id}
-            id={section.id}
-            label={SECTION_LABELS[section.type]}
-            editable={editMode}
-            index={i}
-            total={visibleSections.length}
-            style={section.style}
-            onMoveUp={() => moveSection(section.id, -1)}
-            onMoveDown={() => moveSection(section.id, 1)}
-            onHide={() => setVisible(section.id, false)}
-            onFontChange={(f) => setFont(section.id, f)}
-            onSizeChange={(sz) => setSize(section.id, sz)}
-          >
-            {section.type === "hero" && (
-              <Hero
-                data={section.data}
-                size={section.style.size}
-                editable={editMode}
-                onChange={(d) => updateSectionData(section.id, d)}
-              />
-            )}
-            {section.type === "about" && (
-              <About
-                data={section.data}
-                size={section.style.size}
-                editable={editMode}
-                onChange={(d) => updateSectionData(section.id, d)}
-              />
-            )}
-            {section.type === "approach" && (
-              <Approach
-                data={section.data}
-                size={section.style.size}
-                editable={editMode}
-                onChange={(d) => updateSectionData(section.id, d)}
-              />
-            )}
-            {section.type === "services" && (
-              <Services
-                data={section.data}
-                size={section.style.size}
-                editable={editMode}
-                onChange={(d) => updateSectionData(section.id, d)}
-              />
-            )}
-            {section.type === "contact" && (
-              <Contact
-                data={section.data}
-                size={section.style.size}
-                editable={editMode}
-                onChange={(d) => updateSectionData(section.id, d)}
-              />
-            )}
-          </SectionChrome>
+        {shownSections.map((section, i) => (
+          <div key={section.id}>
+            {i === 0 && addHere(null)}
+            <SectionChrome
+              id={section.id}
+              label={sectionLabel(section)}
+              editable={editMode}
+              index={i}
+              total={shownSections.length}
+              style={section.style}
+              onMoveUp={() => moveSection(section.id, -1)}
+              onMoveDown={() => moveSection(section.id, 1)}
+              hidden={!section.visible}
+              onToggleHidden={() => setVisible(section.id, !section.visible)}
+              onFontChange={(f) => setFont(section.id, f)}
+              onSizeChange={(sz) => setSize(section.id, sz)}
+              onDelete={
+                ADDABLE_SECTIONS.some((a) => a.type === section.type)
+                  ? () => deleteSection(section.id)
+                  : undefined
+              }
+            >
+              {section.type === "hero" && (
+                <Hero
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "about" && (
+                <About
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "approach" && (
+                <Approach
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "services" && (
+                <Services
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "custom" && (
+                <CustomSection
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "faq" && (
+                <Faq
+                  data={section.data}
+                  size={section.style.size}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+              {section.type === "contact" && (
+                <Contact
+                  data={section.data}
+                  size={section.style.size}
+                  social={content.social}
+                  editable={editMode}
+                  onChange={(d) => updateSectionData(section.id, d)}
+                />
+              )}
+            </SectionChrome>
+            {addHere(section.id)}
+          </div>
         ))}
 
-        {editMode && hiddenSections.length > 0 && (
-          <div className="mx-auto mb-16 mt-4 max-w-2xl rounded-2xl border border-dashed border-sand bg-card p-5 text-center">
-            <p className="text-sm font-medium text-ink-soft">סקשנים מוסתרים:</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {hiddenSections.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setVisible(s.id, true)}
-                  className="rounded-full border border-sage px-4 py-1.5 text-sm text-sage-dark hover:bg-sage-light"
-                >
-                  החזרת &quot;{SECTION_LABELS[s.type]}&quot;
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
 
       <Footer
         footer={content.footer}
+        social={content.social}
         editable={editMode}
         onChange={(f) => setContent((c) => ({ ...c, footer: f }))}
       />
 
+      {/* Extra footer-coloured room so the footer can scroll clear of the toolbar. */}
+      {isAdmin && <div aria-hidden className="h-24 bg-ink" />}
+
       {isAdmin && (
-        <div className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
-          <div className="flex flex-wrap items-center justify-center gap-3 rounded-full border border-sand bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur">
-            <button
-              type="button"
-              onClick={toggleEdit}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                editMode ? "bg-ink text-white" : "bg-sage text-white hover:bg-sage-dark"
-              }`}
-            >
-              {editMode ? "סיום עריכה" : "✏️ עריכת האתר"}
-            </button>
-
-            {editMode && (
-              <>
-                {status === "saved" && (
-                  <span className="text-sm font-medium text-sage-dark">נשמר ✓</span>
-                )}
-                {status === "error" && (
-                  <span className="text-sm font-medium text-terracotta-dark">שגיאה בשמירה</span>
-                )}
-                <button
-                  type="button"
-                  onClick={save}
-                  disabled={status === "saving"}
-                  className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:bg-terracotta-dark disabled:opacity-60"
-                >
-                  {status === "saving" ? "שומר..." : "שמירה"}
-                </button>
-                <a href="/admin/settings" className="text-sm text-ink-soft underline">
-                  הגדרות
-                </a>
-              </>
-            )}
-
-            <button type="button" onClick={logout} className="text-sm text-ink-soft underline">
-              יציאה
-            </button>
-          </div>
-        </div>
+        <AdminToolbar
+          editMode={editMode}
+          status={status}
+          onToggleEdit={toggleEdit}
+          onSave={save}
+          onLogout={logout}
+        />
       )}
     </div>
   );
