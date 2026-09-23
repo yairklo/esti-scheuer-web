@@ -111,7 +111,7 @@ export function SectionChrome({
             </select>
             <div
               className="flex gap-0.5 rounded border border-sand bg-cream p-0.5"
-              title="גודל הסקשן (ריווח וכותרות)"
+              title="גודל הבלוק (ריווח וכותרות)"
             >
               {SIZE_KEYS.map((s) => (
                 <button
@@ -140,7 +140,7 @@ export function SectionChrome({
               <button
                 type="button"
                 onClick={onToggleHidden}
-                title="החזרת הסקשן לאתר"
+                title="החזרת הבלוק לאתר"
                 className="rounded bg-sage px-2 py-0.5 font-medium text-white hover:bg-sage-dark"
               >
                 הצגה באתר
@@ -149,7 +149,7 @@ export function SectionChrome({
               <button
                 type="button"
                 onClick={onToggleHidden}
-                title="הסתרת הסקשן מהאתר"
+                title="הסתרת הבלוק מהאתר"
                 className="rounded px-1.5 py-0.5 text-terracotta-dark hover:bg-terracotta/10"
               >
                 הסתרה
@@ -159,7 +159,7 @@ export function SectionChrome({
               <button
                 type="button"
                 onClick={onDelete}
-                title="מחיקת הסקשן לצמיתות"
+                title="מחיקת הבלוק לצמיתות"
                 className="rounded px-1.5 py-0.5 text-terracotta-dark hover:bg-terracotta/10"
               >
                 מחיקה 🗑

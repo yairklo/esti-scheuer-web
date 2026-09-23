@@ -26,7 +26,7 @@ const SECTION_LABELS: Record<SectionType, string> = {
   about: "עליי",
   approach: "גישה טיפולית",
   services: "תחומי טיפול",
-  custom: "סקשן חדש",
+  custom: "בלוק חדש",
   faq: "שאלות נפוצות",
   contact: "יצירת קשר",
 };
@@ -127,7 +127,7 @@ export default function SiteShell({
   }
 
   function deleteSection(id: string) {
-    if (!window.confirm("למחוק את הסקשן לצמיתות? (אפשר גם רק להסתיר אותו)")) return;
+    if (!window.confirm("למחוק את הבלוק לצמיתות? (אפשר גם רק להסתיר אותו)")) return;
     setContent((c) => ({ ...c, sections: c.sections.filter((s) => s.id !== id) }));
   }
 
@@ -181,7 +181,7 @@ export default function SiteShell({
       <div className="flex flex-wrap items-center justify-center gap-2 py-3 text-xs font-medium">
         {pickerAt === key ? (
           <>
-            <span className="text-ink-soft">איזה סקשן להוסיף?</span>
+            <span className="text-ink-soft">איזה בלוק להוסיף?</span>
             {ADDABLE_SECTIONS.map((opt) => (
               <button
                 key={opt.type}
@@ -206,7 +206,7 @@ export default function SiteShell({
             onClick={() => setPickerAt(key)}
             className="rounded-full border border-dashed border-sage bg-cream px-4 py-1.5 text-sage-dark hover:bg-sage-light"
           >
-            + הוספת סקשן כאן
+            + הוספת בלוק כאן
           </button>
         )}
       </div>
