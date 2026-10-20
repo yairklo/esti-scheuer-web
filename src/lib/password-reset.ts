@@ -33,6 +33,17 @@ export function rateLimitKey(ip: string): string {
   return `${groups.slice(0, 4).join(":").toLowerCase()}::/64`;
 }
 
+/** Per-IP rate-limit bucket for a request (see `rateLimitKey`). */
+export function requestIpKey(request: Request): string {
+  // On Vercel these headers are set by the platform and can't be spoofed;
+  // elsewhere they can, and missing ones all share the "unknown" bucket.
+  const ip =
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    "unknown";
+  return rateLimitKey(ip);
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
