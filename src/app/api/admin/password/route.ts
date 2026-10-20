@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { verifyPassword } from "@/lib/password";
 import { getAdminAuth, updateAdminPasswordHash } from "@/lib/auth-store";
+import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -23,6 +24,15 @@ export async function POST(request: Request) {
   }
 
   const newHash = await bcrypt.hash(newPassword, 10);
-  await updateAdminPasswordHash(newHash);
-  return NextResponse.json({ ok: true });
+  const version = await updateAdminPasswordHash(newHash);
+
+  // The change signs out every other session; re-issue this one so the
+  // person who just changed it stays logged in.
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set(
+    SESSION_COOKIE,
+    await createSessionToken(auth.username, version),
+    sessionCookieOptions()
+  );
+  return response;
 }

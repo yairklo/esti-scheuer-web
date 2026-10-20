@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getContent } from "@/lib/content";
-import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
+import { SESSION_COOKIE } from "@/lib/session";
+import { isSessionValid } from "@/lib/auth-store";
 import { buildFaqJsonLd, buildJsonLd, buildWebsiteJsonLd } from "@/lib/seo";
 import SiteShell from "@/components/SiteShell";
 
@@ -9,8 +10,9 @@ export const revalidate = 0;
 export default async function Home() {
   const content = await getContent();
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const isAdmin = token ? Boolean(await verifySessionToken(token)) : false;
+  // Same check as proxy.ts, so a session revoked by a password change doesn't
+  // still get the edit toolbar here.
+  const isAdmin = await isSessionValid(cookieStore.get(SESSION_COOKIE)?.value);
   const jsonLd = buildJsonLd(content);
   const websiteJsonLd = buildWebsiteJsonLd();
   const faqJsonLd = buildFaqJsonLd(content);

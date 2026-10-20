@@ -1,10 +1,13 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verifySessionToken } from "@/lib/session";
 
 const AUTH_ID = 1;
 
 export async function getAdminAuth(): Promise<{
   username: string;
   passwordHash: string;
+  sessionVersion: number;
 }> {
   const row = await prisma.adminAuth.findUnique({ where: { id: AUTH_ID } });
   if (row) return row;
@@ -20,9 +23,38 @@ export async function getAdminAuth(): Promise<{
     if (existing) return existing;
     throw new Error("Failed to bootstrap admin auth");
   }
-  return { username, passwordHash };
+  return { username, passwordHash, sessionVersion: 0 };
 }
 
-export async function updateAdminPasswordHash(passwordHash: string): Promise<void> {
-  await prisma.adminAuth.update({ where: { id: AUTH_ID }, data: { passwordHash } });
+/**
+ * Sets a new password. Every session issued before the change stops working
+ * (sessionVersion bump) and any outstanding reset link is revoked. Pass `tx`
+ * to run it inside a caller's transaction. Returns the new session version.
+ */
+export async function updateAdminPasswordHash(
+  passwordHash: string,
+  tx?: Prisma.TransactionClient
+): Promise<number> {
+  if (!tx) return prisma.$transaction((t) => updateAdminPasswordHash(passwordHash, t));
+  const row = await tx.adminAuth.update({
+    where: { id: AUTH_ID },
+    data: { passwordHash, sessionVersion: { increment: 1 } },
+  });
+  await tx.passwordResetToken.updateMany({
+    where: { usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  return row.sessionVersion;
+}
+
+/**
+ * Full session check: valid signature and expiry, and signed with the current
+ * sessionVersion (a password change bumps it, revoking older sessions).
+ * Tokens from before the version existed carry no `ver` and count as 0.
+ */
+export async function isSessionValid(token: string | undefined): Promise<boolean> {
+  const payload = token ? await verifySessionToken(token) : null;
+  if (!payload) return false;
+  const { sessionVersion } = await getAdminAuth();
+  return ((payload.ver as number | undefined) ?? 0) === sessionVersion;
 }

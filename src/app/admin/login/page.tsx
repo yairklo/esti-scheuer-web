@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,6 +37,31 @@ export default function LoginPage() {
       setError("שגיאת רשת, נסי שוב");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    setError("");
+    if (!username.trim()) {
+      setError("כדי לקבל קישור לאיפוס, הקלידי קודם את שם המשתמש");
+      return;
+    }
+    setResetStatus("sending");
+    try {
+      const res = await fetch("/api/admin/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      if (!res.ok) {
+        setError("שגיאה בשליחת הקישור, נסי שוב");
+        setResetStatus("idle");
+        return;
+      }
+      setResetStatus("sent");
+    } catch {
+      setError("שגיאת רשת, נסי שוב");
+      setResetStatus("idle");
     }
   }
 
@@ -92,6 +118,24 @@ export default function LoginPage() {
             {loading ? "מתחברת..." : "כניסה"}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          {resetStatus === "sent" ? (
+            <p className="text-sm text-sage-dark">
+              אם שם המשתמש נכון, נשלח קישור לאיפוס הסיסמה למייל שלך (תקף ל-30 דקות). לא הגיע
+              תוך כמה דקות? כדאי לבדוק בתיקיית הספאם, לוודא את שם המשתמש ולנסות שוב.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetStatus === "sending"}
+              className="text-sm text-ink-soft underline underline-offset-4 hover:text-ink disabled:opacity-60"
+            >
+              {resetStatus === "sending" ? "שולחת..." : "שכחתי סיסמה"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

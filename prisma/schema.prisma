@@ -21,8 +21,23 @@ model SiteContent {
 // Singleton row (id is always 1) holding the admin login credentials, so the
 // password can be changed at runtime from Settings without a redeploy.
 model AdminAuth {
-  id           Int      @id @default(1)
-  username     String
-  passwordHash String
-  updatedAt    DateTime @updatedAt
+  id             Int      @id @default(1)
+  username       String
+  passwordHash   String
+  // Embedded in session JWTs; bumped on every password change so sessions
+  // issued before the change stop working.
+  sessionVersion Int      @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+// One-time links emailed from "forgot password". Only a SHA-256 of the token
+// is stored, so a leaked DB row can't be turned back into a working link.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  // Requester's IP, for the per-IP rate limit.
+  ip        String?
+  createdAt DateTime  @default(now())
 }
