@@ -5,7 +5,7 @@ import ResetPasswordForm from "@/components/admin/ResetPasswordForm";
 
 export const dynamic = "force-dynamic";
 
-// The token is in the URL; don't leak it in Referer headers.
+// Belt and braces: proxy.ts also sends a Referrer-Policy header for this page.
 export const metadata: Metadata = { referrer: "no-referrer" };
 
 export default async function ResetPasswordPage({

@@ -16,6 +16,23 @@ const GLOBAL_MAX_PER_HOUR = 20;
 // check-then-insert below across concurrent serverless instances.
 const RATE_LIMIT_LOCK_KEY = 735102;
 
+/**
+ * Bucket for the per-IP limit. IPv6 clients typically control a whole /64, so
+ * rotating addresses inside it must not reset their quota.
+ */
+export function rateLimitKey(ip: string): string {
+  const v4 = ip.match(/(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (v4) return v4[1]; // plain or IPv4-mapped (::ffff:1.2.3.4)
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const groups = ip.includes("::")
+    ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t]
+    : h;
+  return `${groups.slice(0, 4).join(":").toLowerCase()}::/64`;
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -24,7 +41,7 @@ function hashToken(token: string) {
 export async function createResetToken(ip: string): Promise<string | null> {
   const token = randomBytes(32).toString("hex");
   const created = await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${RATE_LIMIT_LOCK_KEY})`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${RATE_LIMIT_LOCK_KEY}::bigint)`;
     const now = Date.now();
     const recent = await tx.passwordResetToken.findMany({
       where: { createdAt: { gt: new Date(now - HOUR_MS) } },

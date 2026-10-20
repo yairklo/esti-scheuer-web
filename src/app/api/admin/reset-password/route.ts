@@ -20,12 +20,19 @@ export async function POST(request: Request) {
   // Ensures the AdminAuth row exists before updating it.
   await getAdminAuth();
 
-  // One transaction: if the password update fails, the token isn't burned.
-  const ok = await prisma.$transaction(async (tx) => {
-    if (!(await consumeResetToken(token, tx))) return false;
-    await updateAdminPasswordHash(newHash, tx);
-    return true;
-  });
+  // One transaction: if the password update fails (DB error, timeout, or a
+  // deadlock with a concurrent reset), it rolls back and the link stays usable.
+  let ok: boolean;
+  try {
+    ok = await prisma.$transaction(async (tx) => {
+      if (!(await consumeResetToken(token, tx))) return false;
+      await updateAdminPasswordHash(newHash, tx);
+      return true;
+    });
+  } catch (err) {
+    console.error("Password reset failed:", err);
+    return NextResponse.json({ error: "שגיאה באיפוס הסיסמה, נסי שוב" }, { status: 500 });
+  }
 
   if (!ok) {
     return NextResponse.json(

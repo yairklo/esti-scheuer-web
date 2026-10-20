@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verifySessionToken } from "@/lib/session";
 
 const AUTH_ID = 1;
 
@@ -44,4 +45,16 @@ export async function updateAdminPasswordHash(
     data: { usedAt: new Date() },
   });
   return row.sessionVersion;
+}
+
+/**
+ * Full session check: valid signature and expiry, and signed with the current
+ * sessionVersion (a password change bumps it, revoking older sessions).
+ * Tokens from before the version existed carry no `ver` and count as 0.
+ */
+export async function isSessionValid(token: string | undefined): Promise<boolean> {
+  const payload = token ? await verifySessionToken(token) : null;
+  if (!payload) return false;
+  const { sessionVersion } = await getAdminAuth();
+  return ((payload.ver as number | undefined) ?? 0) === sessionVersion;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
-import { getAdminAuth } from "@/lib/auth-store";
+import { SESSION_COOKIE } from "@/lib/session";
+import { isSessionValid } from "@/lib/auth-store";
 
 export const config = {
   matcher: ["/admin/:path*", "/api/admin/:path*"],
@@ -15,21 +15,38 @@ const PUBLIC_PATHS = new Set([
   "/api/admin/reset-password",
 ]);
 
+const UNAVAILABLE = "השרת אינו זמין כרגע, נסי שוב בעוד רגע";
+
 export async function proxy(request: NextRequest) {
-  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
-    return NextResponse.next();
+  const { pathname } = request.nextUrl;
+  if (PUBLIC_PATHS.has(pathname)) {
+    const response = NextResponse.next();
+    // The reset token is in this page's URL: keep it out of Referer headers.
+    // A response header applies before any subresource loads, unlike a
+    // streamed <meta> tag.
+    if (pathname === "/admin/reset-password") {
+      response.headers.set("Referrer-Policy", "no-referrer");
+    }
+    return response;
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const payload = token ? await verifySessionToken(token) : null;
-  // A password change bumps sessionVersion, so tokens signed before it are
-  // rejected. Tokens from before this check existed carry no `ver`: treat as 0.
-  // (Proxy runs on the Node.js runtime in Next 16, so Prisma works here.)
-  const valid =
-    !!payload && ((payload.ver as number | undefined) ?? 0) === (await getAdminAuth()).sessionVersion;
+  let valid: boolean;
+  try {
+    // Checks the session version against the DB (Proxy runs on the Node.js
+    // runtime in Next 16, so Prisma works here).
+    valid = await isSessionValid(request.cookies.get(SESSION_COOKIE)?.value);
+  } catch (err) {
+    console.error("Session check failed:", err);
+    return pathname.startsWith("/api/")
+      ? NextResponse.json({ error: UNAVAILABLE }, { status: 503 })
+      : new NextResponse(UNAVAILABLE, {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+  }
 
   if (!valid) {
-    if (request.nextUrl.pathname.startsWith("/api/")) {
+    if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "לא מחובר/ת" }, { status: 401 });
     }
     const loginUrl = new URL("/admin/login", request.url);

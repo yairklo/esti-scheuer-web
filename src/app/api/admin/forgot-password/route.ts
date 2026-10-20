@@ -1,40 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getAdminAuth } from "@/lib/auth-store";
-import { createResetToken, sendResetEmail } from "@/lib/password-reset";
+import { createResetToken, rateLimitKey, sendResetEmail } from "@/lib/password-reset";
 
-// Bounds the SMTP send (its own timeouts are shorter) so a stall can't run long.
+// Bounds the background send in after() (SMTP has its own shorter timeouts).
 export const maxDuration = 30;
 
 // Public endpoint. The link always goes to ADMIN_RECOVERY_EMAIL; the username
-// is required only so drive-by requests can't trigger emails. A wrong username
-// gets the same "sent" answer as a right one.
+// is required only so drive-by requests can't trigger emails. All the work
+// runs after the response, so every caller gets the same instant reply:
+// neither its body nor its timing reveals whether the username was right,
+// the request was throttled, or the send failed (failures are logged).
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const username = typeof body?.username === "string" ? body.username.trim() : "";
-
-  const auth = await getAdminAuth();
-  if (!username || username !== auth.username) {
-    return NextResponse.json({ ok: true });
-  }
-
-  // On Vercel these headers are set by the platform, not the client.
+  // On Vercel these headers are set by the platform and can't be spoofed;
+  // elsewhere they can, and missing ones all share the "unknown" bucket.
   const ip =
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
     "unknown";
 
-  try {
-    const token = await createResetToken(ip);
-    if (!token) {
-      return NextResponse.json({ ok: true, throttled: true });
+  after(async () => {
+    try {
+      const auth = await getAdminAuth();
+      if (!username || username !== auth.username) return;
+      const token = await createResetToken(rateLimitKey(ip));
+      if (token) await sendResetEmail(token);
+    } catch (err) {
+      console.error("Password reset email failed:", err);
     }
-    await sendResetEmail(token);
-  } catch (err) {
-    console.error("Password reset email failed:", err);
-    return NextResponse.json(
-      { error: "לא הצלחנו לשלוח את המייל. נסי שוב מאוחר יותר." },
-      { status: 500 }
-    );
-  }
+  });
   return NextResponse.json({ ok: true });
 }

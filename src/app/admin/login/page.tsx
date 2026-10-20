@@ -11,9 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent" | "throttled">(
-    "idle"
-  );
+  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,13 +53,12 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "שגיאה בשליחת הקישור");
+        setError("שגיאה בשליחת הקישור, נסי שוב");
         setResetStatus("idle");
         return;
       }
-      setResetStatus(data.throttled ? "throttled" : "sent");
+      setResetStatus("sent");
     } catch {
       setError("שגיאת רשת, נסי שוב");
       setResetStatus("idle");
@@ -123,11 +120,10 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          {resetStatus === "sent" || resetStatus === "throttled" ? (
+          {resetStatus === "sent" ? (
             <p className="text-sm text-sage-dark">
-              {resetStatus === "sent"
-                ? "אם שם המשתמש נכון, נשלח קישור לאיפוס הסיסמה למייל שלך (תקף ל-30 דקות). לא הגיע? כדאי לבדוק בתיקיית הספאם ולוודא את שם המשתמש."
-                : "כבר נשלח קישור לאיפוס לפני רגע. בדקי את המייל (וגם את תיקיית הספאם), או נסי שוב בעוד כמה דקות."}
+              אם שם המשתמש נכון, נשלח קישור לאיפוס הסיסמה למייל שלך (תקף ל-30 דקות). לא הגיע
+              תוך כמה דקות? כדאי לבדוק בתיקיית הספאם, לוודא את שם המשתמש ולנסות שוב.
             </p>
           ) : (
             <button
