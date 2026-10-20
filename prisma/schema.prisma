@@ -41,3 +41,14 @@ model PasswordResetToken {
   ip        String?
   createdAt DateTime  @default(now())
 }
+
+// One row per failed admin login, for the login rate limit. Rows older than
+// the rate-limit window plus the lockout are deleted as new failures come in.
+model FailedLogin {
+  id        Int      @id @default(autoincrement())
+  // Rate-limit bucket of the client's IP (IPv6 grouped by /64).
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
