@@ -70,11 +70,11 @@ DATABASE_URL="<connection string>" node scripts/reset-password.js "הסיסמה-
 
 ### "שכחתי סיסמה"
 
-במסך הכניסה יש כפתור "שכחתי סיסמה" ששולח למייל של אסתי קישור (תקף ל-30 דקות, לשימוש אחד) לבחירת סיסמה חדשה. המיילים נשלחים דרך [Resend](https://resend.com), ולכן צריך להגדיר ב-Vercel:
+במסך הכניסה יש כפתור "שכחתי סיסמה" ששולח למייל של אסתי קישור (תקף ל-30 דקות, לשימוש אחד) לבחירת סיסמה חדשה. המיילים נשלחים מחשבון Gmail ייעודי (SMTP עם App Password), ולכן צריך להגדיר ב-Vercel:
 
-- `RESEND_API_KEY` — מפתח API מ-Resend.
-- `ADMIN_RECOVERY_EMAIL` — הכתובת שאליה נשלח הקישור.
-- `RESEND_FROM_EMAIL` (אופציונלי) — כתובת שולח בדומיין שאומת ב-Resend. בלעדיה נשלח מ-`onboarding@resend.dev`, שיכול לשלוח רק לכתובת שאיתה נרשמתם ל-Resend.
+- `GMAIL_USER` — כתובת חשבון ה-Gmail השולח.
+- `GMAIL_APP_PASSWORD` — App Password של החשבון (דורש אימות דו-שלבי; יוצרים ב-https://myaccount.google.com/apppasswords). מומלץ חשבון ייעודי ולא אישי, כי הסיסמה הזו נותנת גישה מלאה לתיבה.
+- `ADMIN_RECOVERY_EMAIL` — הכתובת שאליה נשלח הקישור (המייל של אסתי).
 - `NEXT_PUBLIC_SITE_URL` — כדי שהקישור במייל יוביל לכתובת הנכונה של האתר.
 
 ## פריסה (Deploy) ל-Vercel

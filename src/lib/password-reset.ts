@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "crypto";
+import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/site";
 
@@ -67,32 +68,26 @@ export async function isResetTokenValid(token: string): Promise<boolean> {
 }
 
 export async function sendResetEmail(token: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
   const to = process.env.ADMIN_RECOVERY_EMAIL;
-  if (!apiKey || !to) {
-    throw new Error("RESEND_API_KEY / ADMIN_RECOVERY_EMAIL are not set");
+  if (!user || !pass || !to) {
+    throw new Error("GMAIL_USER / GMAIL_APP_PASSWORD / ADMIN_RECOVERY_EMAIL are not set");
   }
-  // Without a verified domain Resend only allows its shared test sender.
-  const from = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
   const link = `${SITE_URL}/admin/reset-password?token=${token}`;
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: `אתר אסתי שויער <${from}>`,
-      to: [to],
-      subject: "איפוס סיסמה לניהול האתר",
-      html: `<div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
+  // Gmail SMTP with an App Password (requires 2-Step Verification on the account).
+  const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+  await transporter.sendMail({
+    from: `"אתר אסתי שויער" <${user}>`,
+    to,
+    subject: "איפוס סיסמה לניהול האתר",
+    html: `<div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
   <p>שלום אסתי,</p>
   <p>התקבלה בקשה לאיפוס הסיסמה לניהול האתר. לבחירת סיסמה חדשה לחצי על הקישור:</p>
   <p><a href="${link}">בחירת סיסמה חדשה</a></p>
   <p>הקישור תקף ל-30 דקות ולשימוש אחד בלבד.<br>אם לא ביקשת לאפס את הסיסמה, אפשר פשוט להתעלם מהמייל הזה.</p>
 </div>`,
-      text: `לבחירת סיסמה חדשה לניהול האתר: ${link}\nהקישור תקף ל-30 דקות. אם לא ביקשת לאפס את הסיסמה, אפשר להתעלם מהמייל.`,
-    }),
+    text: `לבחירת סיסמה חדשה לניהול האתר: ${link}\nהקישור תקף ל-30 דקות. אם לא ביקשת לאפס את הסיסמה, אפשר להתעלם מהמייל.`,
   });
-  if (!res.ok) {
-    throw new Error(`Resend failed (${res.status}): ${await res.text()}`);
-  }
 }
