@@ -4,4 +4,4 @@
 // unset) must also fall through, or metadataBase gets `new URL("")` and throws.
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://esti-scheuer.vercel.app";
+  "https://esti-scheuer-web.vercel.app";
