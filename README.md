@@ -75,7 +75,9 @@ DATABASE_URL="<connection string>" node scripts/reset-password.js "הסיסמה-
 - `GMAIL_USER` — כתובת חשבון ה-Gmail השולח.
 - `GMAIL_APP_PASSWORD` — App Password של החשבון (דורש אימות דו-שלבי; יוצרים ב-https://myaccount.google.com/apppasswords). מומלץ חשבון ייעודי ולא אישי, כי הסיסמה הזו נותנת גישה מלאה לתיבה.
 - `ADMIN_RECOVERY_EMAIL` — הכתובת שאליה נשלח הקישור (המייל של אסתי).
-- `NEXT_PUBLIC_SITE_URL` — כדי שהקישור במייל יוביל לכתובת הנכונה של האתר.
+- `NEXT_PUBLIC_SITE_URL` — רק אחרי חיבור דומיין משלכם (ברירת המחדל היא `https://esti-scheuer-web.vercel.app`). הערך נקבע בזמן ה-build, ולכן אחרי שינוי שלו צריך Redeploy.
+
+כדי לבקש קישור צריך להקליד קודם את שם המשתמש במסך הכניסה. ההגבלה: קישור אחד בדקה ועד 5 בשעה לכל כתובת IP. איפוס סיסמה (בכל דרך: קישור, מסך ההגדרות או הסקריפט) מנתק את כל החיבורים הקיימים ומבטל קישורי איפוס שעוד לא נוצלו.
 
 ## פריסה (Deploy) ל-Vercel
 

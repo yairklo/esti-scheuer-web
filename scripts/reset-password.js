@@ -20,11 +20,17 @@ const prisma = new PrismaClient({ adapter });
 
 (async () => {
   const passwordHash = bcrypt.hashSync(password, 10);
-  const { count } = await prisma.adminAuth.updateMany({ where: { id: 1 }, data: { passwordHash } });
+  // Same effect as an in-app change: bump sessionVersion so existing sessions
+  // are signed out, and revoke any outstanding reset links.
+  const { count } = await prisma.adminAuth.updateMany({
+    where: { id: 1 },
+    data: { passwordHash, sessionVersion: { increment: 1 } },
+  });
   if (count === 0) {
     console.error("No AdminAuth row yet — log in once (it bootstraps from env vars), or set ADMIN_PASSWORD_HASH.");
     process.exit(1);
   }
+  await prisma.passwordResetToken.updateMany({ where: { usedAt: null }, data: { usedAt: new Date() } });
   console.log("Admin password updated.");
 })()
   .catch((err) => {

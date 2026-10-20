@@ -11,7 +11,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent" | "throttled">(
+    "idle"
+  );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,10 +44,24 @@ export default function LoginPage() {
 
   async function handleForgotPassword() {
     setError("");
+    if (!username.trim()) {
+      setError("כדי לקבל קישור לאיפוס, הקלידי קודם את שם המשתמש");
+      return;
+    }
     setResetStatus("sending");
     try {
-      await fetch("/api/admin/forgot-password", { method: "POST" });
-      setResetStatus("sent");
+      const res = await fetch("/api/admin/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "שגיאה בשליחת הקישור");
+        setResetStatus("idle");
+        return;
+      }
+      setResetStatus(data.throttled ? "throttled" : "sent");
     } catch {
       setError("שגיאת רשת, נסי שוב");
       setResetStatus("idle");
@@ -107,9 +123,11 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          {resetStatus === "sent" ? (
+          {resetStatus === "sent" || resetStatus === "throttled" ? (
             <p className="text-sm text-sage-dark">
-              נשלח קישור לאיפוס הסיסמה למייל שלך (תקף ל-30 דקות). לא הגיע? כדאי לבדוק בתיקיית הספאם.
+              {resetStatus === "sent"
+                ? "אם שם המשתמש נכון, נשלח קישור לאיפוס הסיסמה למייל שלך (תקף ל-30 דקות). לא הגיע? כדאי לבדוק בתיקיית הספאם ולוודא את שם המשתמש."
+                : "כבר נשלח קישור לאיפוס לפני רגע. בדקי את המייל (וגם את תיקיית הספאם), או נסי שוב בעוד כמה דקות."}
             </p>
           ) : (
             <button

@@ -5,8 +5,9 @@ const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
 export const SESSION_COOKIE = "admin_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-export async function createSessionToken(username: string) {
-  return new SignJWT({ sub: username })
+/** `version` is AdminAuth.sessionVersion at sign-in (see proxy.ts). */
+export async function createSessionToken(username: string, version: number) {
+  return new SignJWT({ sub: username, ver: version })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE}s`)
@@ -20,4 +21,14 @@ export async function verifySessionToken(token: string) {
   } catch {
     return null;
   }
+}
+
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  };
 }

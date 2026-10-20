@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { isResetTokenValid } from "@/lib/password-reset";
 import ResetPasswordForm from "@/components/admin/ResetPasswordForm";
 
 export const dynamic = "force-dynamic";
+
+// The token is in the URL; don't leak it in Referer headers.
+export const metadata: Metadata = { referrer: "no-referrer" };
 
 export default async function ResetPasswordPage({
   searchParams,
