@@ -26,3 +26,13 @@ model AdminAuth {
   passwordHash String
   updatedAt    DateTime @updatedAt
 }
+
+// One-time links emailed from "forgot password". Only a SHA-256 of the token
+// is stored, so a leaked DB row can't be turned back into a working link.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

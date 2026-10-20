@@ -5,7 +5,14 @@ export const config = {
   matcher: ["/admin/:path*", "/api/admin/:path*"],
 };
 
-const PUBLIC_PATHS = new Set(["/admin/login", "/api/admin/login", "/api/admin/logout"]);
+const PUBLIC_PATHS = new Set([
+  "/admin/login",
+  "/admin/reset-password",
+  "/api/admin/login",
+  "/api/admin/logout",
+  "/api/admin/forgot-password",
+  "/api/admin/reset-password",
+]);
 
 export async function proxy(request: NextRequest) {
   if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
