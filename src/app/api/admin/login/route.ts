@@ -7,7 +7,10 @@ import {
   beginLoginAttempt,
   clearFailedLogins,
   pruneFailedLogins,
+  type LoginAttempt,
 } from "@/lib/login-rate-limit";
+
+const UNAVAILABLE = "השרת אינו זמין כרגע, נסי שוב בעוד רגע";
 
 // bcrypt hash (cost 10, like real ones) of a random string nobody knows.
 // Compared against when the username is wrong, so that path costs the same
@@ -20,7 +23,15 @@ export async function POST(request: Request) {
   const password = typeof body?.password === "string" ? body.password : "";
   const ipKey = requestIpKey(request);
 
-  const attempt = await beginLoginAttempt(ipKey);
+  let attempt: LoginAttempt;
+  let auth: Awaited<ReturnType<typeof getAdminAuth>>;
+  try {
+    attempt = await beginLoginAttempt(ipKey);
+    auth = await getAdminAuth();
+  } catch (err) {
+    console.error("Login check failed:", err);
+    return NextResponse.json({ error: UNAVAILABLE }, { status: 503 });
+  }
   if (!attempt.allowed) {
     const minutes = Math.ceil(attempt.retryAfterSeconds / 60);
     const wait = minutes === 1 ? "דקה" : `${minutes} דקות`;
@@ -30,7 +41,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const auth = await getAdminAuth();
   const validUsername = username === auth.username;
   const validPassword = await verifyPassword(
     password,
@@ -38,11 +48,13 @@ export async function POST(request: Request) {
   );
 
   if (!validUsername || !validPassword) {
-    await pruneFailedLogins();
+    await pruneFailedLogins().catch((err) => console.error("Pruning failed logins failed:", err));
     return NextResponse.json({ error: "שם משתמש או סיסמה שגויים" }, { status: 401 });
   }
 
-  await clearFailedLogins(ipKey);
+  await clearFailedLogins(ipKey).catch((err) =>
+    console.error("Clearing failed logins failed:", err)
+  );
   const token = await createSessionToken(username, auth.sessionVersion);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
