@@ -63,7 +63,7 @@ export default function Contact({
           className={`mx-auto mt-4 max-w-xl leading-relaxed text-white/85 ${s.intro}`}
         />
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+        <div data-nosnippet className="mt-10 flex flex-wrap items-center justify-center gap-4">
           {editable ? (
             <EditableText
               as="span"
@@ -77,6 +77,7 @@ export default function Contact({
             data.phone && (
               <a
                 href={`tel:${data.phone.replace(/[^\d+]/g, "")}`}
+                dir="ltr"
                 className="rounded-full bg-white px-7 py-3 text-base font-semibold text-sage-dark shadow-md transition-transform hover:scale-[1.03]"
               >
                 {data.phone}
@@ -97,6 +98,7 @@ export default function Contact({
             data.email && (
               <a
                 href={`mailto:${data.email}`}
+                dir="ltr"
                 className="rounded-full border border-white/70 px-7 py-3 text-base font-semibold text-white transition-colors hover:bg-white/10"
               >
                 {data.email}
